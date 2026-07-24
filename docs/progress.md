@@ -1,0 +1,36 @@
+# Progress
+
+> Updated per phase. One source of truth for what's done, in progress, blocked, and next.
+
+## Phase 0 — Skill Setup ✅
+- [x] Searched 5 skill categories (offline PWA, POS retail, payment gateway, thermal printer, barcode scanner)
+- [x] Installed `integrate-midtrans-payments` (official Veritrans publisher)
+- [x] Loaded local skills: grill-me, ponytail, design-taste-frontend, ui-ux-pro-max, shadcn, huashu-design, improve-codebase-architecture
+- [x] Decision: no other external skills clear the bar yet — revisit when scope confirms hardware needs
+
+## Phase 1 — Discovery ✅
+- [x] Q1: Single business (Hadzka Shop only) — no multi-tenant
+- [x] Q2: Online-only architecture — offline mode out of scope. Lightweight retry buffer approved.
+- [x] Q3: Cash + Midtrans (QRIS) — Xendit out of scope
+- [x] Q4: Single outlet
+- [x] Q5: MVP success metric defined (one full business day end-to-end)
+- [x] Q6-Q9: Additional scope locked (refunds, discounts, till closing, user roles)
+- [x] Q10: PDF receipt first, thermal printer deferred
+- [x] Q11: Tax/PPN configurable via shop settings, discount input at checkout
+- [x] Cross-cutting: all business values dynamic, no hardcoded/static values
+- [x] All decisions logged in `docs/decisions.md`
+
+## Phase 2 — Foundation Docs ✅
+- [x] PRD.md — product requirements with explicit Out of Scope section
+- [x] architecture.md — stack, folder structure, data model, API contracts
+- [x] design.md — POS cashier cockpit design system
+- [x] AGENTS.md — operating rules for all agents
+- [x] docs/testing.md — acceptance criteria
+- [x] **REVIEWED** — Owner approved foundation docs
+
+## Phase 3 — Execution Plan 🔲
+- [x] `docs/implementation-plan.md` — phased, checkbox-based execution plan created
+- [ ] **AWAITING REVIEW** — Owner review and approval required before Phase 4
+
+## Phase 4 — Execution 🔲
+- [ ] Not started — blocked on Phase 3 completion
