@@ -1,12 +1,31 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { updateSettings } from "./actions";
-import type { Shop } from "@prisma/client";
+import type { Shop } from "@/generated/prisma/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { motion, type Variants } from "framer-motion";
 
 type Props = { shop: Omit<Shop, "taxRate"> & { taxRate: number } };
 
-const initialState = { success: false };
+const initialState = { success: false, message: "", errors: {} as Record<string, string[]> };
+
+const formVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { staggerChildren: 0.1, duration: 0.4, ease: "easeOut" }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+};
 
 export function SettingsForm({ shop }: Props) {
   const [state, formAction, isPending] = useActionState(updateSettings, initialState);
@@ -17,141 +36,137 @@ export function SettingsForm({ shop }: Props) {
     "aria-describedby": `${name}-error`,
   });
 
+  useEffect(() => {
+    if (state.message) {
+      if (state.success) {
+        toast.success(state.message);
+      } else {
+        toast.error(state.message);
+      }
+    }
+  }, [state.success, state.message]);
+
   return (
-    <form action={formAction} className="space-y-6">
-      {state.message && (
-        <div
-          role="alert"
-          className={`rounded-md px-4 py-3 text-sm font-medium ${
-            state.success
-              ? "bg-success/10 text-success border border-success/20"
-              : "bg-destructive/10 text-destructive border border-destructive/20"
-          }`}
-        >
-          {state.message}
-        </div>
-      )}
+    <motion.form 
+      action={formAction} 
+      className="space-y-8 pb-12"
+      initial="hidden"
+      animate="visible"
+      variants={formVariants}
+    >
+      <motion.div variants={itemVariants} className="space-y-1">
+        <h2 className="text-xl font-semibold tracking-tight">Shop Information</h2>
+        <p className="text-sm text-muted-foreground">The primary details identifying your business on receipts and POS.</p>
+      </motion.div>
 
-      {/* Shop Info */}
-      <fieldset className="border border-border rounded-lg p-4 space-y-4">
-        <legend className="px-2 text-sm font-semibold text-foreground">Shop Information</legend>
-
-        <div className="space-y-1">
-          <label htmlFor="name" className="text-sm font-medium">Shop Name *</label>
-          <input
-            {...field("name")}
-            defaultValue={shop.name}
-            required
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-          {state.errors?.name && (
-            <p id="name-error" className="text-xs text-destructive">{state.errors.name[0]}</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label htmlFor="phone" className="text-sm font-medium">Phone</label>
-            <input
-              {...field("phone")}
-              defaultValue={shop.phone ?? ""}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+      <motion.div variants={itemVariants} className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border-b border-border/40 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
+            <label htmlFor="name" className="text-sm font-medium">Shop Name</label>
+            <p className="text-xs text-muted-foreground">The name displayed on the POS.</p>
           </div>
-          <div className="space-y-1">
+          <div className="w-full md:w-2/3">
+            <Input {...field("name")} defaultValue={shop.name} required className="bg-background/50" />
+            {state.errors?.name && <p id="name-error" className="text-xs text-destructive mt-1.5">{state.errors.name[0]}</p>}
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border-b border-border/40 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
+            <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
+            <p className="text-xs text-muted-foreground">Used for customer inquiries.</p>
+          </div>
+          <div className="w-full md:w-2/3">
+            <Input {...field("phone")} defaultValue={shop.phone ?? ""} className="bg-background/50" />
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border-b border-border/40 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
             <label htmlFor="currency" className="text-sm font-medium">Currency</label>
-            <input
-              {...field("currency")}
-              defaultValue={shop.currency}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+            <p className="text-xs text-muted-foreground">Default base currency symbol.</p>
+          </div>
+          <div className="w-full md:w-2/3">
+            <Input {...field("currency")} defaultValue={shop.currency} className="bg-background/50" />
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="address" className="text-sm font-medium">Address</label>
-          <textarea
-            {...field("address")}
-            defaultValue={shop.address ?? ""}
-            rows={2}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-          />
+        <div className="flex flex-col md:flex-row items-start justify-between p-5 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
+            <label htmlFor="address" className="text-sm font-medium">Address</label>
+            <p className="text-xs text-muted-foreground">Physical location of your store.</p>
+          </div>
+          <div className="w-full md:w-2/3">
+            <Textarea {...field("address")} defaultValue={shop.address ?? ""} rows={3} className="resize-none bg-background/50" />
+          </div>
         </div>
-      </fieldset>
+      </motion.div>
 
-      {/* Tax & Stock */}
-      <fieldset className="border border-border rounded-lg p-4 space-y-4">
-        <legend className="px-2 text-sm font-semibold text-foreground">Tax & Stock</legend>
+      <motion.div variants={itemVariants} className="space-y-1 pt-4">
+        <h2 className="text-xl font-semibold tracking-tight">Tax & Inventory</h2>
+        <p className="text-sm text-muted-foreground">Configure global rates and alerts.</p>
+      </motion.div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
+      <motion.div variants={itemVariants} className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex flex-col md:flex-row items-start justify-between p-5 border-b border-border/40 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
             <label htmlFor="taxRate" className="text-sm font-medium">Default Tax Rate (%)</label>
-            <input
-              {...field("taxRate")}
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              defaultValue={Number(shop.taxRate)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-price"
-            />
-            <p className="text-xs text-muted-foreground">
-              Applied to new transactions by default. Can be overridden per transaction.
-            </p>
-            {state.errors?.taxRate && (
-              <p id="taxRate-error" className="text-xs text-destructive">{state.errors.taxRate[0]}</p>
-            )}
+            <p className="text-xs text-muted-foreground">Applied to new transactions by default. Can be overridden per transaction.</p>
           </div>
-          <div className="space-y-1">
+          <div className="w-full md:w-2/3">
+            <Input {...field("taxRate")} type="number" step="0.01" min="0" max="100" defaultValue={Number(shop.taxRate)} className="font-price bg-background/50" />
+            {state.errors?.taxRate && <p id="taxRate-error" className="text-xs text-destructive mt-1.5">{state.errors.taxRate[0]}</p>}
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-start justify-between p-5 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
             <label htmlFor="lowStockThreshold" className="text-sm font-medium">Low Stock Threshold</label>
-            <input
-              {...field("lowStockThreshold")}
-              type="number"
-              min="0"
-              defaultValue={shop.lowStockThreshold}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-price"
-            />
-            <p className="text-xs text-muted-foreground">
-              Products below this level show a low stock warning.
-            </p>
+            <p className="text-xs text-muted-foreground">Products below this level show a low stock warning in the dashboard.</p>
+          </div>
+          <div className="w-full md:w-2/3">
+            <Input {...field("lowStockThreshold")} type="number" min="0" defaultValue={shop.lowStockThreshold} className="font-price bg-background/50" />
           </div>
         </div>
-      </fieldset>
+      </motion.div>
 
-      {/* Receipt */}
-      <fieldset className="border border-border rounded-lg p-4 space-y-4">
-        <legend className="px-2 text-sm font-semibold text-foreground">Receipt</legend>
+      <motion.div variants={itemVariants} className="space-y-1 pt-4">
+        <h2 className="text-xl font-semibold tracking-tight">Receipt Configuration</h2>
+        <p className="text-sm text-muted-foreground">Customize the printed receipt appearance.</p>
+      </motion.div>
 
-        <div className="space-y-1">
-          <label htmlFor="receiptHeader" className="text-sm font-medium">Receipt Header</label>
-          <textarea
-            {...field("receiptHeader")}
-            defaultValue={shop.receiptHeader ?? ""}
-            rows={2}
-            placeholder="e.g. Thank you for shopping at Hadzka Shop!"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-          />
+      <motion.div variants={itemVariants} className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex flex-col md:flex-row items-start justify-between p-5 border-b border-border/40 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
+            <label htmlFor="receiptHeader" className="text-sm font-medium">Receipt Header</label>
+            <p className="text-xs text-muted-foreground">Appears at the top of the printed receipt.</p>
+          </div>
+          <div className="w-full md:w-2/3">
+            <Textarea {...field("receiptHeader")} defaultValue={shop.receiptHeader ?? ""} rows={2} placeholder="e.g. Thank you for shopping at Hadzka Shop!" className="resize-none bg-background/50" />
+          </div>
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="receiptFooter" className="text-sm font-medium">Receipt Footer</label>
-          <textarea
-            {...field("receiptFooter")}
-            defaultValue={shop.receiptFooter ?? ""}
-            rows={2}
-            placeholder="e.g. Returns accepted within 7 days with receipt."
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-          />
+        <div className="flex flex-col md:flex-row items-start justify-between p-5 gap-4">
+          <div className="space-y-0.5 md:w-1/3">
+            <label htmlFor="receiptFooter" className="text-sm font-medium">Receipt Footer</label>
+            <p className="text-xs text-muted-foreground">Appears at the bottom of the printed receipt.</p>
+          </div>
+          <div className="w-full md:w-2/3">
+            <Textarea {...field("receiptFooter")} defaultValue={shop.receiptFooter ?? ""} rows={2} placeholder="e.g. Returns accepted within 7 days with receipt." className="resize-none bg-background/50" />
+          </div>
         </div>
-      </fieldset>
+      </motion.div>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-md bg-primary text-primary-foreground font-medium text-sm py-2.5 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target"
-      >
-        {isPending ? "Saving…" : "Save Settings"}
-      </button>
-    </form>
+      <motion.div variants={itemVariants} className="flex justify-end pt-4">
+        <Button
+          type="submit"
+          disabled={isPending}
+          size="lg"
+          className="rounded-xl px-8 shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/30"
+        >
+          {isPending ? "Saving Changes…" : "Save Settings"}
+        </Button>
+      </motion.div>
+    </motion.form>
   );
 }

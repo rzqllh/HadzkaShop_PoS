@@ -1,8 +1,38 @@
 "use client";
 
-import { useActionState, useState, useRef, useEffect } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { createProduct, updateProduct, archiveProduct, restoreProduct } from "./actions";
 import { useRouter } from "next/navigation";
+import { Plus, PencilSimple, Archive, ArrowUUpLeft, Image as ImageIcon } from "@phosphor-icons/react";
+import { PageTransition } from "@/components/ui/page-transition";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
 type Category = { id: string; name: string };
 type Product = {
@@ -21,7 +51,7 @@ type Product = {
 };
 
 type Props = { products: Product[]; categories: Category[]; showArchived: boolean };
-const emptyState = { success: false };
+const emptyState = { success: false, message: "", errors: {} as Record<string, string[]> };
 
 function formatIDR(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -30,10 +60,11 @@ function formatIDR(n: number) {
 type DrawerProps = {
   product?: Product | null;
   categories: Category[];
+  isOpen: boolean;
   onClose: () => void;
 };
 
-function ProductDrawer({ product, categories, onClose }: DrawerProps) {
+function ProductDrawer({ product, categories, isOpen, onClose }: DrawerProps) {
   const isNew = !product;
   const [createState, createAction, isCreating] = useActionState(createProduct, emptyState);
   const [updateState, updateAction, isUpdating] = useActionState(
@@ -45,241 +76,295 @@ function ProductDrawer({ product, categories, onClose }: DrawerProps) {
   const isPending = isNew ? isCreating : isUpdating;
 
   const router = useRouter();
+  const [isUploading, setIsUploading] = useState(false);
+  const [imgUrl, setImgUrl] = useState(product?.imageUrl ?? "");
+
+  // Reset imgUrl when product changes
+  useEffect(() => {
+    if (isOpen) {
+      setImgUrl(product?.imageUrl ?? "");
+    }
+  }, [product, isOpen]);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setImgUrl(data.url);
+        toast.success("Gambar berhasil diupload");
+      } else {
+        toast.error("Gagal mengupload gambar");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal mengupload gambar");
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   // Close on success
   useEffect(() => {
     if (state.success && state.message) {
+      toast.success(state.message);
       onClose();
       router.refresh();
+    } else if (state.message) {
+      toast.error(state.message);
     }
   }, [state.success, state.message, onClose, router]);
 
-  const inputClass =
-    "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-label={isNew ? "New product" : "Edit product"}>
-      <div className="bg-card rounded-lg border border-border shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="font-semibold text-base">{isNew ? "New Product" : "Edit Product"}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 hover:bg-accent transition-colors touch-target flex items-center justify-center"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{isNew ? "New Product" : "Edit Product"}</SheetTitle>
+          <SheetDescription>
+            {isNew ? "Add a new product to your inventory." : "Update the details of this product."}
+          </SheetDescription>
+        </SheetHeader>
 
-        <form action={formAction} className="p-4 space-y-4">
-          {state.message && !state.success && (
-            <div role="alert" className="rounded-md px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">
-              {state.message}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 space-y-1">
-              <label htmlFor="p-name" className="text-xs font-medium text-muted-foreground">Product Name *</label>
-              <input id="p-name" name="name" required defaultValue={product?.name} className={inputClass} />
+        <form action={formAction} className="space-y-4 pt-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2 space-y-2">
+              <label htmlFor="p-name" className="text-sm font-medium">Product Name *</label>
+              <Input id="p-name" name="name" required defaultValue={product?.name} />
               {state.errors?.name && <p className="text-xs text-destructive">{state.errors.name[0]}</p>}
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="p-sku" className="text-xs font-medium text-muted-foreground">SKU *</label>
-              <input id="p-sku" name="sku" required defaultValue={product?.sku} className={`${inputClass} font-price`} />
+            <div className="space-y-2">
+              <label htmlFor="p-sku" className="text-sm font-medium">SKU *</label>
+              <Input id="p-sku" name="sku" required defaultValue={product?.sku} className="font-price" />
               {state.errors?.sku && <p className="text-xs text-destructive">{state.errors.sku[0]}</p>}
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="p-barcode" className="text-xs font-medium text-muted-foreground">Barcode</label>
-              <input id="p-barcode" name="barcode" defaultValue={product?.barcode ?? ""} className={`${inputClass} font-price`} />
+            <div className="space-y-2">
+              <label htmlFor="p-barcode" className="text-sm font-medium">Barcode</label>
+              <Input id="p-barcode" name="barcode" defaultValue={product?.barcode ?? ""} className="font-price" />
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="p-price" className="text-xs font-medium text-muted-foreground">Selling Price (Rp) *</label>
-              <input id="p-price" name="price" type="number" min="0" step="1" required defaultValue={product ? Number(product.price) : ""} className={`${inputClass} font-price`} />
+            <div className="space-y-2">
+              <label htmlFor="p-price" className="text-sm font-medium">Selling Price (Rp) *</label>
+              <Input id="p-price" name="price" type="number" min="0" step="1" required defaultValue={product ? Number(product.price) : ""} className="font-price" />
               {state.errors?.price && <p className="text-xs text-destructive">{state.errors.price[0]}</p>}
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="p-costPrice" className="text-xs font-medium text-muted-foreground">Cost Price (Rp)</label>
-              <input id="p-costPrice" name="costPrice" type="number" min="0" step="1" defaultValue={product?.costPrice ? Number(product.costPrice) : ""} className={`${inputClass} font-price`} />
+            <div className="space-y-2">
+              <label htmlFor="p-costPrice" className="text-sm font-medium">Cost Price (Rp)</label>
+              <Input id="p-costPrice" name="costPrice" type="number" min="0" step="1" defaultValue={product?.costPrice ? Number(product.costPrice) : ""} className="font-price" />
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="p-stock" className="text-xs font-medium text-muted-foreground">Stock</label>
-              <input id="p-stock" name="stock" type="number" min="0" defaultValue={product?.stock ?? 0} className={`${inputClass} font-price`} />
+            <div className="space-y-2">
+              <label htmlFor="p-stock" className="text-sm font-medium">Stock</label>
+              <Input id="p-stock" name="stock" type="number" min="0" defaultValue={product?.stock ?? 0} className="font-price" />
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="p-lowStock" className="text-xs font-medium text-muted-foreground">Low Stock Alert</label>
-              <input id="p-lowStock" name="lowStockThreshold" type="number" min="0" defaultValue={product?.lowStockThreshold ?? ""} placeholder="Use shop default" className={`${inputClass} font-price`} />
+            <div className="space-y-2">
+              <label htmlFor="p-lowStock" className="text-sm font-medium">Low Stock Alert</label>
+              <Input id="p-lowStock" name="lowStockThreshold" type="number" min="0" defaultValue={product?.lowStockThreshold ?? ""} placeholder="Use shop default" className="font-price" />
             </div>
 
-            <div className="col-span-2 space-y-1">
-              <label htmlFor="p-category" className="text-xs font-medium text-muted-foreground">Category</label>
-              <select id="p-category" name="categoryId" defaultValue={product?.categoryId ?? ""} className={inputClass}>
-                <option value="">— No category —</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+            <div className="col-span-2 space-y-2">
+              <label htmlFor="p-category" className="text-sm font-medium">Category</label>
+              <Select name="categoryId" defaultValue={product?.categoryId ?? undefined}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No category —</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="col-span-2 space-y-1">
-              <label htmlFor="p-imageUrl" className="text-xs font-medium text-muted-foreground">Image URL</label>
-              <input id="p-imageUrl" name="imageUrl" type="url" defaultValue={product?.imageUrl ?? ""} placeholder="https://…" className={inputClass} />
+            <div className="col-span-2 space-y-3">
+              <label className="text-sm font-medium">Gambar Produk (Opsional)</label>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center overflow-hidden border border-border flex-shrink-0">
+                  {imgUrl ? (
+                    <img src={imgUrl} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon size={24} weight="duotone" className="text-muted-foreground/50" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={isUploading || isPending}
+                    className="cursor-pointer"
+                  />
+                  <input type="hidden" name="imageUrl" value={imgUrl} />
+                  {isUploading && <p className="text-xs text-primary font-medium animate-pulse">Mengupload...</p>}
+                </div>
+              </div>
               {state.errors?.imageUrl && <p className="text-xs text-destructive">{state.errors.imageUrl[0]}</p>}
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="flex-1 rounded-md bg-primary text-primary-foreground text-sm font-medium py-2.5 hover:bg-primary/90 disabled:opacity-50 transition-colors touch-target"
-            >
-              {isPending ? "Saving…" : isNew ? "Create Product" : "Save Changes"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 rounded-md border border-border text-sm font-medium hover:bg-accent transition-colors touch-target"
-            >
+          <SheetFooter className="mt-8 flex-col sm:flex-row gap-2">
+            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
               Cancel
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
+              {isPending ? "Saving…" : isNew ? "Create Product" : "Save Changes"}
+            </Button>
+          </SheetFooter>
         </form>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
-import { Plus, PencilSimple, Archive, ArrowUUpLeft } from "@phosphor-icons/react";
-
-// (skipped the ProductDrawer translation for brevity in ponytail mode, focusing on main page)
 
 export function ProductsClient({ products, categories, showArchived }: Props) {
   const [drawerProduct, setDrawerProduct] = useState<Product | null | undefined>(undefined);
-  // undefined = closed, null = new product, Product = editing
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const router = useRouter();
 
   async function handleArchive(id: string) {
     const res = await archiveProduct(id);
-    setActionMsg(res.message);
+    if (res.success) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
     router.refresh();
   }
 
   async function handleRestore(id: string) {
     const res = await restoreProduct(id);
-    setActionMsg(res.message);
+    if (res.success) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
     router.refresh();
   }
 
   return (
-    <div className="space-y-6">
+    <PageTransition className="space-y-6">
       {!showArchived && (
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            size="lg"
             onClick={() => setDrawerProduct(null)}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-primary text-primary-foreground text-base font-bold hover:bg-primary/90 transition-colors touch-target shadow-sm"
+            className="font-bold shadow-sm"
           >
-            <Plus size={20} weight="bold" /> Tambah Produk
-          </button>
+            <Plus size={20} weight="bold" className="mr-2" /> Tambah Produk
+          </Button>
         </div>
       )}
 
-      {actionMsg && (
-        <div role="status" className="rounded-md px-4 py-3 text-sm font-medium bg-success/10 text-success border border-success/20">
-          {actionMsg}
-        </div>
-      )}
-
-      <div className="border border-border rounded-lg overflow-hidden bg-card shadow-sm">
+      <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
         {products.length === 0 ? (
           <div className="p-12 text-center text-base text-muted-foreground">
             {showArchived ? "Tidak ada produk yang diarsipkan." : "Belum ada produk. Klik “Tambah Produk” untuk memulai."}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-base min-w-[700px]">
-              <thead className="border-b border-border bg-muted/40">
-                <tr>
-                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Nama Produk</th>
-                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">SKU</th>
-                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Kategori</th>
-                  <th className="text-right px-6 py-4 font-semibold text-muted-foreground">Harga</th>
-                  <th className="text-right px-6 py-4 font-semibold text-muted-foreground">Stok</th>
-                  <th className="w-40 px-6 py-4"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {products.map((p) => {
-                  const lowStockLevel = p.lowStockThreshold;
-                  const isLow = lowStockLevel !== null && p.stock <= lowStockLevel;
+          <Table>
+            <TableHeader className="bg-muted/40">
+              <TableRow>
+                <TableHead className="w-[300px]">Nama Produk</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead className="text-right">Harga</TableHead>
+                <TableHead className="text-right">Stok</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {products.map((p) => {
+                const lowStockLevel = p.lowStockThreshold;
+                const isLow = lowStockLevel !== null && p.stock <= lowStockLevel;
 
-                  return (
-                    <tr key={p.id} className="hover:bg-accent/20 transition-colors">
-                      <td className="px-6 py-4 font-bold">{p.name}</td>
-                      <td className="px-6 py-4 font-price text-muted-foreground">{p.sku}</td>
-                      <td className="px-6 py-4 text-muted-foreground">
-                        {p.category?.name ?? <span className="italic text-muted-foreground/50">—</span>}
-                      </td>
-                      <td className="px-6 py-4 text-right font-price font-semibold">{formatIDR(Number(p.price))}</td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`font-price font-bold ${isLow ? "text-warning" : ""}`}>
-                          {p.stock}
-                        </span>
-                        {isLow && (
-                          <span className="ml-2 text-xs font-bold text-warning uppercase bg-warning/10 px-2 py-1 rounded">Hampir Habis</span>
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-bold flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 border border-border">
+                        {p.imageUrl ? (
+                          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon size={16} weight="duotone" className="text-muted-foreground/50" />
                         )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          {!showArchived ? (
-                            <>
-                              <button
-                                onClick={() => setDrawerProduct(p)}
-                                className="flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-md hover:bg-accent touch-target border border-transparent hover:border-border"
-                              >
-                                <PencilSimple size={18} weight="duotone" /> Edit
-                              </button>
-                              <button
-                                onClick={() => handleArchive(p.id)}
-                                className="flex items-center gap-1 text-sm font-semibold text-destructive hover:text-destructive/80 transition-colors px-3 py-2 rounded-md hover:bg-destructive/10 touch-target border border-transparent hover:border-destructive/20"
-                              >
-                                <Archive size={18} weight="duotone" /> Arsip
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => handleRestore(p.id)}
-                              className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 transition-colors px-3 py-2 rounded-md hover:bg-primary/10 touch-target border border-transparent hover:border-primary/20"
+                      </div>
+                      <span className="line-clamp-2 leading-tight">{p.name}</span>
+                    </TableCell>
+                    <TableCell className="font-price text-muted-foreground">{p.sku}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {p.category?.name ?? <span className="italic text-muted-foreground/50">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-price font-semibold">{formatIDR(Number(p.price))}</TableCell>
+                    <TableCell className="text-right">
+                      <span className={`font-price font-bold ${isLow ? "text-warning" : ""}`}>
+                        {p.stock}
+                      </span>
+                      {isLow && (
+                        <Badge variant="outline" className="ml-2 bg-warning/10 text-warning border-warning/20">
+                          Hampir Habis
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {!showArchived ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDrawerProduct(p)}
+                              className="font-semibold text-muted-foreground hover:text-foreground"
                             >
-                              <ArrowUUpLeft size={18} weight="duotone" /> Pulihkan
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                              <PencilSimple size={18} weight="duotone" className="mr-1" /> Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleArchive(p.id)}
+                              className="font-semibold text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                            >
+                              <Archive size={18} weight="duotone" className="mr-1" /> Arsip
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRestore(p.id)}
+                            className="font-semibold text-primary hover:text-primary/80 hover:bg-primary/10"
+                          >
+                            <ArrowUUpLeft size={18} weight="duotone" className="mr-1" /> Pulihkan
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
 
-      {/* Product Drawer */}
-      {drawerProduct !== undefined && (
-        <ProductDrawer
-          product={drawerProduct}
-          categories={categories}
-          onClose={() => setDrawerProduct(undefined)}
-        />
-      )}
-    </div>
+      <ProductDrawer
+        product={drawerProduct}
+        categories={categories}
+        isOpen={drawerProduct !== undefined}
+        onClose={() => setDrawerProduct(undefined)}
+      />
+    </PageTransition>
   );
 }

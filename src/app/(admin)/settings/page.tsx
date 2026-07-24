@@ -14,10 +14,10 @@ export default async function SettingsPage() {
   if (!shop) return null;
 
   return (
-    <div className="p-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+    <div className="p-8 max-w-4xl mx-auto w-full h-full overflow-y-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Settings</h1>
+        <p className="text-base text-muted-foreground mt-2">
           Manage shop information, tax rates, and receipt configuration.
         </p>
       </div>

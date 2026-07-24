@@ -3,7 +3,13 @@
 import { useState, useMemo, useCallback, useTransition } from "react";
 import Link from "next/link";
 import { submitTransaction } from "./actions";
-import { MagnifyingGlass, ShoppingCart, Trash, Plus, Minus, Money, QrCode, Bank } from "@phosphor-icons/react";
+import { MagnifyingGlass, ShoppingCart, Trash, Money, QrCode } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ProductCard } from "@/components/pos/product-card";
+import { CartLineItem } from "@/components/pos/cart-line-item";
+import { PageTransition } from "@/components/ui/page-transition";
 
 // ── Types ──────────────────────────────────────────────
 type Category = { id: string; name: string };
@@ -105,10 +111,12 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
+        if (existing.qty >= product.stock) return prev; // Cannot exceed stock
         return prev.map((i) =>
           i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i
         );
       }
+      if (product.stock < 1) return prev;
       return [...prev, { product, qty: 1 }];
     });
   }, []);
@@ -117,9 +125,15 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
     if (qty <= 0) {
       setCart((prev) => prev.filter((i) => i.product.id !== productId));
     } else {
-      setCart((prev) =>
-        prev.map((i) => (i.product.id === productId ? { ...i, qty } : i))
-      );
+      setCart((prev) => {
+        return prev.map((i) => {
+          if (i.product.id === productId) {
+            const cappedQty = Math.min(qty, i.product.stock);
+            return { ...i, qty: cappedQty };
+          }
+          return i;
+        });
+      });
     }
   }, []);
 
@@ -200,100 +214,98 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
+    <PageTransition className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Till Overlay */}
-      {!isTillOpen && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-sm rounded-lg shadow-xl p-6 border border-border">
-            <h2 className="text-2xl font-bold mb-2">Buka Kasir</h2>
-            <p className="text-base text-muted-foreground mb-6">Masukkan modal awal (uang kas) untuk memulai.</p>
+      <Dialog open={!isTillOpen}>
+        <DialogContent className="sm:max-w-[425px]" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Buka Kasir</DialogTitle>
+            <DialogDescription>
+              Masukkan modal awal (uang kas) untuk memulai shift ini.
+            </DialogDescription>
+          </DialogHeader>
+          {tillError && (
+            <div role="alert" className="rounded-md px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">
+              {tillError}
+            </div>
+          )}
+          <form onSubmit={handleOpenTill} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label htmlFor="startingCash" className="text-sm font-medium">Starting Cash (Rp)</label>
+              <Input
+                id="startingCash"
+                type="number"
+                required
+                min="0"
+                value={startingCash}
+                onChange={(e) => setStartingCash(e.target.value)}
+                placeholder="0"
+                autoFocus
+                className="font-price text-lg"
+              />
+            </div>
+            <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0 mt-6">
+              <Button type="submit" disabled={isPending} className="w-full text-lg font-bold py-6">
+                {isPending ? "Membuka…" : "Buka Kasir"}
+              </Button>
+              {cashierRole === "OWNER" && (
+                <Link href="/dashboard" className="text-sm text-center text-muted-foreground hover:text-foreground mt-2">
+                  Kembali ke Ringkasan
+                </Link>
+              )}
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close Till Modal */}
+      <Dialog open={showCloseTillModal} onOpenChange={setShowCloseTillModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Tutup Kasir</DialogTitle>
+            <DialogDescription>
+              Pastikan jumlah uang tunai di laci sesuai dengan perhitungan sistem.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCloseTill} className="space-y-4 pt-4">
             {tillError && (
-              <div role="alert" className="mb-4 rounded-md px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">
+              <div role="alert" className="rounded-md px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">
                 {tillError}
               </div>
             )}
-            <form onSubmit={handleOpenTill} className="space-y-4">
-              <div className="space-y-1">
-                <label htmlFor="startingCash" className="text-sm font-medium">Starting Cash (Rp)</label>
-                <input
-                  id="startingCash"
-                  type="number"
-                  required
-                  min="0"
-                  value={startingCash}
-                  onChange={(e) => setStartingCash(e.target.value)}
-                  placeholder="0"
-                  autoFocus
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 font-price text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full rounded-md bg-primary text-primary-foreground text-lg font-bold py-4 hover:bg-primary/90 disabled:opacity-50 transition-colors touch-target"
-              >
-                {isPending ? "Membuka…" : "Buka Kasir"}
-              </button>
-              {cashierRole === "OWNER" && (
-                <div className="pt-2 text-center">
-                  <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-                    Kembali ke Ringkasan
-                  </Link>
-                </div>
-              )}
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Close Till Modal */}
-      {showCloseTillModal && (
-        <div className="absolute inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card w-full max-w-md rounded-lg shadow-xl border border-border">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className="font-semibold">Close Till</h2>
-              <button onClick={() => setShowCloseTillModal(false)} className="text-muted-foreground hover:text-foreground touch-target px-2">✕</button>
+            <div className="space-y-2">
+              <label htmlFor="actualCash" className="text-sm font-medium">Actual Cash in Drawer (Rp)</label>
+              <Input
+                id="actualCash"
+                type="number"
+                required
+                min="0"
+                value={actualCash}
+                onChange={(e) => setActualCash(e.target.value)}
+                placeholder="0"
+                className="font-price text-lg"
+              />
             </div>
-            <form onSubmit={handleCloseTill} className="p-4 space-y-4">
-              {tillError && (
-                <div role="alert" className="rounded-md px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">
-                  {tillError}
-                </div>
-              )}
-              <div className="space-y-1">
-                <label htmlFor="actualCash" className="text-sm font-medium">Actual Cash in Drawer (Rp)</label>
-                <input
-                  id="actualCash"
-                  type="number"
-                  required
-                  min="0"
-                  value={actualCash}
-                  onChange={(e) => setActualCash(e.target.value)}
-                  placeholder="0"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 font-price text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="tillNote" className="text-sm font-medium">Notes (Optional)</label>
-                <textarea
-                  id="tillNote"
-                  value={tillNote}
-                  onChange={(e) => setTillNote(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-                  rows={2}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full rounded-md bg-destructive text-destructive-foreground text-sm font-medium py-2.5 hover:bg-destructive/90 disabled:opacity-50 transition-colors touch-target"
-              >
+            <div className="space-y-2">
+              <label htmlFor="tillNote" className="text-sm font-medium">Notes (Optional)</label>
+              <Input
+                id="tillNote"
+                value={tillNote}
+                onChange={(e) => setTillNote(e.target.value)}
+                placeholder="Catatan penutupan..."
+              />
+            </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setShowCloseTillModal(false)}>
+                Batal
+              </Button>
+              <Button type="submit" variant="destructive" disabled={isPending}>
                 {isPending ? "Closing…" : "Confirm & Close Till"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Header */}
       <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card flex-shrink-0">
@@ -305,12 +317,14 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
         </div>
         <div className="flex items-center gap-3">
           {isTillOpen && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => { setTillError(null); setShowCloseTillModal(true); setActualCash(""); setTillNote(""); }}
-              className="text-sm text-destructive hover:text-destructive/80 transition-colors px-3 py-2 rounded-md border border-destructive/30 touch-target font-semibold"
+              className="text-destructive hover:text-destructive/80 border-destructive/30 font-semibold"
             >
               Tutup Kasir
-            </button>
+            </Button>
           )}
           {cashierRole === "OWNER" && (
             <Link
@@ -326,101 +340,62 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
       {/* Two-panel body */}
       <div className="flex flex-1 overflow-hidden">
         {/* ── LEFT: Product Panel ────────────────────── */}
-        <div className="flex flex-col flex-[6] overflow-hidden border-r border-border">
+        <div className="flex flex-col flex-1 overflow-hidden border-r border-border relative z-0">
           {/* Search + Category filter */}
-          <div className="flex-shrink-0 p-4 space-y-3 border-b border-border bg-card">
-            <div className="relative">
-              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} weight="duotone" />
-              <input
+          <div className="flex-shrink-0 p-6 space-y-4 border-b border-border bg-card/80 backdrop-blur-md">
+            <div className="relative max-w-xl">
+              <MagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={22} weight="duotone" />
+              <Input
                 type="search"
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
                 placeholder="Cari produk atau SKU…"
-                className="w-full rounded-md border border-input bg-background pl-10 pr-4 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="w-full pl-12 h-12 text-base rounded-xl bg-background/80 shadow-sm border-border focus-visible:ring-primary transition-shadow"
                 aria-label="Cari produk"
               />
             </div>
             {/* Category tabs */}
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                <button
+                <Button
+                  variant={activeCategoryId === "all" ? "default" : "secondary"}
+                  className="rounded-xl font-semibold transition-all hover:-translate-y-[1px]"
                   onClick={() => setActiveCategoryId("all")}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors touch-target ${
-                    activeCategoryId === "all"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-accent"
-                  }`}
                 >
                   All
-                </button>
+                </Button>
                 {categories.map((cat) => (
-                  <button
+                  <Button
                     key={cat.id}
+                    variant={activeCategoryId === cat.id ? "default" : "secondary"}
+                    className="rounded-xl font-semibold transition-all hover:-translate-y-[1px]"
                     onClick={() => setActiveCategoryId(cat.id)}
-                    className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors touch-target ${
-                      activeCategoryId === cat.id
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-accent"
-                    }`}
                   >
                     {cat.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
           </div>
 
           {/* Product grid */}
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
             {filteredProducts.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                No products found.
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                <MagnifyingGlass size={64} weight="duotone" className="mb-4 opacity-20" />
+                <p className="text-lg">No products found.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6">
                 {filteredProducts.map((p) => {
                   const inCart = cart.find((i) => i.product.id === p.id);
-                  const isLow =
-                    p.lowStockThreshold != null && p.stock <= p.lowStockThreshold;
-                  const outOfStock = p.stock === 0;
-
                   return (
-                    <button
+                    <ProductCard
                       key={p.id}
-                      onClick={() => !outOfStock && addToCart(p)}
-                      disabled={outOfStock}
-                      className={`
-                        relative flex flex-col text-left rounded-lg border p-2.5 transition-colors
-                        min-h-[80px] touch-target
-                        ${outOfStock
-                          ? "opacity-40 cursor-not-allowed border-border bg-muted/30"
-                          : inCart
-                          ? "border-primary bg-primary/5 hover:bg-primary/10"
-                          : "border-border bg-card hover:bg-accent/50 active:scale-[0.98]"
-                        }
-                      `}
-                      aria-label={`Add ${p.name} to cart`}
-                    >
-                      <span className="font-medium text-sm leading-tight line-clamp-2">{p.name}</span>
-                      <span className="mt-auto pt-1 font-price text-sm font-semibold text-primary">
-                        {formatIDR(p.price)}
-                      </span>
-                      {isLow && !outOfStock && (
-                        <span className="absolute top-1.5 right-1.5 text-[10px] font-medium text-warning leading-none">
-                          low
-                        </span>
-                      )}
-                      {outOfStock && (
-                        <span className="absolute top-1.5 right-1.5 text-[10px] font-medium text-destructive leading-none">
-                          sold out
-                        </span>
-                      )}
-                      {inCart && (
-                        <span className="absolute bottom-1.5 right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                          {inCart.qty}
-                        </span>
-                      )}
-                    </button>
+                      product={p}
+                      inCartQty={inCart?.qty}
+                      onAddToCart={addToCart}
+                    />
                   );
                 })}
               </div>
@@ -429,7 +404,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
         </div>
 
         {/* ── RIGHT: Cart Panel ──────────────────────── */}
-        <div className="flex flex-col flex-[4] overflow-hidden bg-card">
+        <div className="w-[420px] flex-shrink-0 flex flex-col bg-card border-l border-border relative z-10">
           {/* Success overlay */}
           {txResult?.success && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-success/10 border-2 border-success rounded-lg m-2">
@@ -446,13 +421,15 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
               <span className="font-bold text-xl">Keranjang</span>
             </div>
             {cart.length > 0 && (
-              <button
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={clearCart}
-                className="flex items-center gap-2 text-sm font-semibold text-destructive hover:text-destructive/80 transition-colors px-3 py-2 rounded-md touch-target border border-destructive/20 hover:bg-destructive/5"
+                className="flex items-center gap-2 font-semibold shadow-sm"
               >
                 <Trash size={18} weight="duotone" />
                 Kosongkan
-              </button>
+              </Button>
             )}
           </div>
 
@@ -465,42 +442,20 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
             ) : (
               <div className="divide-y divide-border">
                 {cart.map((item) => (
-                  <div key={item.product.id} className="flex items-center justify-between gap-4 px-6 py-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-bold leading-tight line-clamp-2">{item.product.name}</p>
-                      <p className="text-sm text-primary font-price mt-1">{formatIDR(item.product.price)}</p>
-                    </div>
-                    {/* Qty stepper */}
-                    <div className="flex items-center gap-3 flex-shrink-0 bg-accent/30 rounded-lg p-1 border border-border">
-                      <button
-                        onClick={() => updateQty(item.product.id, item.qty - 1)}
-                        className="h-12 w-12 rounded-md bg-background border border-border flex items-center justify-center text-lg hover:bg-accent transition-colors touch-target shadow-sm"
-                        aria-label="Kurangi jumlah"
-                      >
-                        <Minus size={20} weight="bold" />
-                      </button>
-                      <span className="w-10 text-center text-lg font-price font-bold">{item.qty}</span>
-                      <button
-                        onClick={() => updateQty(item.product.id, item.qty + 1)}
-                        className="h-12 w-12 rounded-md bg-background border border-border flex items-center justify-center text-lg hover:bg-accent transition-colors touch-target shadow-sm"
-                        aria-label="Tambah jumlah"
-                      >
-                        <Plus size={20} weight="bold" />
-                      </button>
-                    </div>
-                    <span className="w-24 text-right text-lg font-price font-bold flex-shrink-0">
-                      {formatIDR(item.product.price * item.qty)}
-                    </span>
-                  </div>
+                  <CartLineItem
+                    key={item.product.id}
+                    item={item}
+                    onUpdateQty={updateQty}
+                  />
                 ))}
               </div>
             )}
           </div>
 
-          {/* Totals + Inputs */}
-          <div className="flex-shrink-0 border-t-2 border-border p-6 bg-accent/5 space-y-4">
+            {/* Totals + Inputs */}
+          <div className="flex-shrink-0 border-t border-border p-6 bg-card/50 space-y-4">
             {/* Totals summary */}
-            <div className="space-y-2 text-base">
+            <div className="space-y-3 text-base">
               <div className="flex justify-between text-muted-foreground">
                 <span className="font-medium">Subtotal</span>
                 <span className="font-price font-semibold">{formatIDR(subtotal)}</span>
@@ -509,14 +464,14 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
               {/* Discount Input */}
               <div className="flex items-center justify-between text-success gap-4 mt-2">
                 <label htmlFor="discount" className="font-medium flex-shrink-0">Diskon (Rp)</label>
-                <input
+                <Input
                   id="discount"
                   type="number"
                   min="0"
                   value={discountAmount || ""}
                   onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
                   placeholder="0"
-                  className="w-32 rounded border border-input bg-background px-3 py-2 text-base font-price font-bold text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                  className="w-32 text-right font-price font-bold bg-background shadow-sm"
                 />
               </div>
 
@@ -525,7 +480,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
                 <label htmlFor="taxOverride" className="font-medium flex-shrink-0">
                   Pajak (%)
                 </label>
-                <input
+                <Input
                   id="taxOverride"
                   type="number"
                   min="0"
@@ -533,7 +488,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
                   step="0.01"
                   value={taxOverride ?? defaultTaxRate}
                   onChange={(e) => setTaxOverride(Number(e.target.value))}
-                  className="w-24 rounded border border-input bg-background px-3 py-2 text-base font-price font-bold text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                  className="w-24 text-right font-price font-bold bg-background shadow-sm"
                 />
               </div>
               {taxRate > 0 && (
@@ -542,6 +497,20 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
                   <span className="font-price font-medium">{formatIDR(taxAmount)}</span>
                 </div>
               )}
+
+              {/* Shipping Input */}
+              <div className="flex items-center justify-between text-muted-foreground gap-4 mt-2">
+                <label htmlFor="shipping" className="font-medium flex-shrink-0">Ongkir (Rp)</label>
+                <Input
+                  id="shipping"
+                  type="number"
+                  min="0"
+                  value={shippingCost || ""}
+                  onChange={(e) => setShippingCost(Number(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-32 text-right font-price font-bold bg-background shadow-sm"
+                />
+              </div>
 
               <div className="flex justify-between font-bold text-2xl pt-4 border-t border-border mt-4">
                 <span>Total Bayar</span>
@@ -554,14 +523,14 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
               <div className="space-y-2 pt-4">
                 <div className="flex items-center justify-between gap-4">
                   <label htmlFor="cash" className="font-bold text-lg flex-shrink-0">Uang Diterima</label>
-                  <input
+                  <Input
                     id="cash"
                     type="number"
                     min={total}
                     value={cashTendered}
                     onChange={(e) => setCashTendered(e.target.value)}
                     placeholder={formatIDR(total)}
-                    className="flex-1 max-w-[200px] rounded-lg border-2 border-primary bg-background px-4 py-3 text-xl font-price font-bold text-right focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                    className="flex-1 max-w-[200px] text-xl font-price font-bold text-right"
                     autoFocus
                   />
                 </div>
@@ -583,37 +552,40 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
             {/* Payment buttons */}
             <div className="pt-4">
               {!checkoutOpen ? (
-                <button
+                <Button
+                  size="lg"
                   onClick={() => setCheckoutOpen(true)}
                   disabled={cart.length === 0}
-                  className="w-full rounded-xl bg-primary text-primary-foreground py-5 text-xl font-bold hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg active:scale-[0.98] flex items-center justify-center gap-3"
+                  className="w-full h-12 text-base font-bold shadow-sm transition-all hover:-translate-y-[1px] active:translate-y-[1px]"
                 >
                   Lanjut Pembayaran
-                </button>
+                </Button>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <button
+                  <Button
+                    size="lg"
                     onClick={() => handleSubmit("CASH")}
                     disabled={isPending || cart.length === 0 || (paymentMethod === "CASH" && cashTenderedNum < total)}
-                    className="rounded-xl bg-success text-success-foreground py-4 text-lg font-bold hover:bg-success/90 disabled:opacity-40 transition-colors shadow flex items-center justify-center gap-2 active:scale-[0.98]"
+                    className="h-12 text-base font-bold bg-success text-success-foreground hover:bg-success/90 shadow-sm transition-all hover:-translate-y-[1px] active:translate-y-[1px]"
                   >
-                    <Money size={28} weight="duotone" />
+                    <Money size={24} weight="duotone" className="mr-2" />
                     {isPending && paymentMethod === "CASH" ? "..." : "Tunai"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    size="lg"
                     onClick={() => handleSubmit("QRIS")}
                     disabled={isPending || cart.length === 0}
-                    className="rounded-xl bg-primary text-primary-foreground py-4 text-lg font-bold hover:bg-primary/90 disabled:opacity-40 transition-colors shadow flex items-center justify-center gap-2 active:scale-[0.98]"
+                    className="h-12 text-base font-bold shadow-sm transition-all hover:-translate-y-[1px] active:translate-y-[1px]"
                   >
-                    <QrCode size={28} weight="duotone" />
+                    <QrCode size={24} weight="duotone" className="mr-2" />
                     {isPending && paymentMethod === "QRIS" ? "..." : "QRIS"}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

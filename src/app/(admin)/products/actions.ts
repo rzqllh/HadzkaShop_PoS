@@ -14,7 +14,7 @@ const ProductSchema = z.object({
   stock: z.coerce.number().int().min(0).default(0),
   lowStockThreshold: z.coerce.number().int().min(0).optional(),
   categoryId: z.string().optional(),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z.string().optional().or(z.literal("")),
 });
 
 export type ProductFormState = {

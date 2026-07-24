@@ -1,7 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createCategory, updateCategory, deleteCategory } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PageTransition } from "@/components/ui/page-transition";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 
 type Category = {
   id: string;
@@ -12,12 +19,12 @@ type Category = {
 
 type Props = { categories: Category[] };
 
-const emptyState = { success: false };
+const emptyState = { success: false, message: "", errors: {} as Record<string, string[]> };
 
 export function CategoriesClient({ categories }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const router = useRouter();
 
   const [createState, createAction, isCreating] = useActionState(createCategory, emptyState);
   const [updateState, updateAction, isUpdating] = useActionState(
@@ -25,34 +32,54 @@ export function CategoriesClient({ categories }: Props) {
     emptyState
   );
 
+  useEffect(() => {
+    if (createState.success) {
+      toast.success(createState.message);
+      setShowNewForm(false);
+    } else if (createState.message) {
+      toast.error(createState.message);
+    }
+  }, [createState]);
+
+  useEffect(() => {
+    if (updateState.success) {
+      toast.success(updateState.message);
+      setEditingId(null);
+    } else if (updateState.message) {
+      toast.error(updateState.message);
+    }
+  }, [updateState]);
+
   async function handleDelete(id: string) {
-    setDeleteError(null);
+    if (!confirm("Are you sure? This cannot be undone.")) return;
     const res = await deleteCategory(id);
-    if (!res.success) setDeleteError(res.message);
+    if (res.success) {
+      toast.success(res.message);
+      router.refresh();
+    } else {
+      toast.error(res.message);
+    }
   }
 
   return (
-    <div className="space-y-4">
+    <PageTransition className="space-y-4">
       {/* New Category Form */}
       {showNewForm ? (
         <form
-          action={(fd) => {
-            createAction(fd);
-            if (createState.success) setShowNewForm(false);
-          }}
+          id="create-cat-form"
+          action={createAction}
           className="border border-border rounded-lg p-4 space-y-3 bg-card"
         >
           <h2 className="text-sm font-semibold">New Category</h2>
           <div className="flex gap-3">
             <div className="flex-1 space-y-1">
               <label htmlFor="new-name" className="text-xs font-medium text-muted-foreground">Name *</label>
-              <input
+              <Input
                 id="new-name"
                 name="name"
                 required
                 autoFocus
                 placeholder="e.g. Beverages"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               {createState.errors?.name && (
                 <p className="text-xs text-destructive">{createState.errors.name[0]}</p>
@@ -60,139 +87,140 @@ export function CategoriesClient({ categories }: Props) {
             </div>
             <div className="w-24 space-y-1">
               <label htmlFor="new-sortOrder" className="text-xs font-medium text-muted-foreground">Order</label>
-              <input
+              <Input
                 id="new-sortOrder"
                 name="sortOrder"
                 type="number"
                 defaultValue={0}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-price"
+                className="font-price"
               />
             </div>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               type="submit"
               disabled={isCreating}
-              className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors touch-target"
+              size="sm"
             >
               {isCreating ? "Saving…" : "Create"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => setShowNewForm(false)}
-              className="px-4 py-2 rounded-md border border-border text-sm font-medium hover:bg-accent transition-colors touch-target"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
-        <button
+        <Button
           onClick={() => setShowNewForm(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-md border border-dashed border-border text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors touch-target"
+          variant="outline"
+          className="border-dashed"
         >
-          <span className="text-lg leading-none">+</span> Add Category
-        </button>
-      )}
-
-      {deleteError && (
-        <div role="alert" className="rounded-md px-4 py-3 text-sm bg-destructive/10 text-destructive border border-destructive/20">
-          {deleteError}
-        </div>
+          <Plus size={16} weight="bold" className="mr-2" /> Add Category
+        </Button>
       )}
 
       {/* Category List */}
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-lg overflow-hidden bg-card">
         {categories.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             No categories yet. Add one above to organise your products.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-border bg-muted/40">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
-                <th className="text-center px-4 py-3 font-medium text-muted-foreground w-20">Order</th>
-                <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">Products</th>
-                <th className="w-32 px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
+          <Table>
+            <TableHeader className="bg-muted/40">
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead className="text-center w-24">Order</TableHead>
+                <TableHead className="text-center w-24">Products</TableHead>
+                <TableHead className="w-32"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {categories.map((cat) =>
                 editingId === cat.id ? (
-                  <tr key={cat.id} className="bg-accent/30">
-                    <td colSpan={4} className="p-3">
+                  <TableRow key={cat.id} className="bg-accent/30">
+                    <TableCell colSpan={4} className="p-3">
                       <form
                         action={updateAction}
                         className="flex items-center gap-3"
                       >
-                        <input
+                        <Input
                           name="name"
                           defaultValue={cat.name}
                           required
                           autoFocus
-                          className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="flex-1"
                         />
-                        <input
+                        <Input
                           name="sortOrder"
                           type="number"
                           defaultValue={cat.sortOrder}
-                          className="w-20 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-price text-center"
+                          className="w-20 font-price text-center"
                         />
-                        <button
+                        <Button
                           type="submit"
                           disabled={isUpdating}
-                          className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                          size="sm"
                         >
                           {isUpdating ? "…" : "Save"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1.5 rounded-md border border-border text-sm hover:bg-accent transition-colors"
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </form>
                       {updateState.errors?.name && (
                         <p className="text-xs text-destructive mt-1">{updateState.errors.name[0]}</p>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
-                  <tr key={cat.id} className="hover:bg-accent/30 transition-colors">
-                    <td className="px-4 py-3 font-medium">{cat.name}</td>
-                    <td className="px-4 py-3 text-center font-price text-muted-foreground">{cat.sortOrder}</td>
-                    <td className="px-4 py-3 text-center">
+                  <TableRow key={cat.id}>
+                    <TableCell className="font-medium">{cat.name}</TableCell>
+                    <TableCell className="text-center font-price text-muted-foreground">{cat.sortOrder}</TableCell>
+                    <TableCell className="text-center">
                       <span className="inline-flex items-center justify-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                         {cat._count.products}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setEditingId(cat.id)}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded"
+                          className="text-muted-foreground hover:text-foreground"
                         >
-                          Edit
-                        </button>
-                        <button
+                          <PencilSimple size={16} weight="duotone" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDelete(cat.id)}
-                          className="text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded"
                           disabled={cat._count.products > 0}
                           title={cat._count.products > 0 ? "Reassign products first" : "Delete category"}
+                          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                         >
-                          Delete
-                        </button>
+                          <Trash size={16} weight="duotone" />
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
-    </div>
+    </PageTransition>
   );
 }

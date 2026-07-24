@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 import {
   ChartLineUp,
@@ -63,13 +64,14 @@ export function AdminNav() {
           <Storefront size={24} weight="duotone" />
           Buka Kasir
         </Link>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-base font-medium text-destructive hover:bg-destructive/10 transition-colors touch-target"
+          className="w-full flex items-center justify-start gap-3 px-4 py-6 rounded-md text-base font-medium text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors touch-target"
         >
           <SignOut size={24} weight="duotone" />
           Keluar
-        </button>
+        </Button>
       </div>
     </aside>
   );

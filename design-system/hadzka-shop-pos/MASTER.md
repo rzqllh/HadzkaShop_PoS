@@ -7,8 +7,8 @@
 ---
 
 **Project:** Hadzka Shop POS
-**Generated:** 2026-07-24 14:18:01
-**Category:** E-commerce
+**Generated:** 2026-07-24 15:04:45
+**Category:** E-commerce Luxury
 
 ---
 
@@ -18,13 +18,13 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#78350F` | `--color-primary` |
-| Secondary | `#92400E` | `--color-secondary` |
-| CTA/Accent | `#FBBF24` | `--color-cta` |
-| Background | `#FEF3C7` | `--color-background` |
-| Text | `#451A03` | `--color-text` |
+| Primary | `#DB2777` | `--color-primary` |
+| Secondary | `#F472B6` | `--color-secondary` |
+| CTA/Accent | `#CA8A04` | `--color-cta` |
+| Background | `#FDF2F8` | `--color-background` |
+| Text | `#831843` | `--color-text` |
 
-**Color Notes:** Coffee brown + warm gold
+**Color Notes:** Romantic pink + elegant gold
 
 ### Typography
 
@@ -68,7 +68,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #FBBF24;
+  background: #CA8A04;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -85,8 +85,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #78350F;
-  border: 2px solid #78350F;
+  color: #DB2777;
+  border: 2px solid #DB2777;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -99,7 +99,7 @@
 
 ```css
 .card {
-  background: #FEF3C7;
+  background: #FDF2F8;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -125,9 +125,9 @@
 }
 
 .input:focus {
-  border-color: #78350F;
+  border-color: #DB2777;
   outline: none;
-  box-shadow: 0 0 0 3px #78350F20;
+  box-shadow: 0 0 0 3px #DB277720;
 }
 ```
 
@@ -153,13 +153,13 @@
 
 ## Style Guidelines
 
-**Style:** Vibrant & Block-based
+**Style:** Liquid Glass
 
-**Keywords:** Bold, energetic, playful, block layout, geometric shapes, high color contrast, duotone, modern, energetic
+**Keywords:** Flowing glass, morphing, smooth transitions, fluid effects, translucent, animated blur, iridescent, chromatic aberration
 
-**Best For:** Startups, creative agencies, gaming, social media, youth-focused, entertainment, consumer
+**Best For:** Premium SaaS, high-end e-commerce, creative platforms, branding experiences, luxury portfolios
 
-**Key Effects:** Large sections (48px+ gaps), animated patterns, bold hover (color shift), scroll-snap, large type (32px+), 200-300ms
+**Key Effects:** Morphing elements (SVG/CSS), fluid animations (400-600ms curves), dynamic blur (backdrop-filter), color transitions
 
 ### Page Pattern
 
@@ -172,8 +172,8 @@
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Flat design without depth
-- ❌ Text-heavy pages
+- ❌ Vibrant & Block-based
+- ❌ Playful colors
 
 ### Additional Forbidden Patterns
 

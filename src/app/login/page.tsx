@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function LoginForm() {
   const router = useRouter();
@@ -26,9 +27,6 @@ function LoginForm() {
     }
   }
 
-  const inputClass =
-    "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
@@ -45,40 +43,37 @@ function LoginForm() {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label htmlFor="email" className="text-sm font-medium">Email</label>
-            <input
+            <Input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
               required
-              className={inputClass}
               placeholder="owner@hadzkashop.com"
             />
           </div>
 
           <div className="space-y-1">
             <label htmlFor="password" className="text-sm font-medium">Password</label>
-            <input
+            <Input
               id="password"
               name="password"
               type="password"
               autoComplete="current-password"
               required
-              className={inputClass}
               placeholder="••••••••"
             />
           </div>
 
-          <button
+          <Button
             type="submit"
-            className="w-full rounded-md bg-primary text-primary-foreground text-sm font-medium py-2.5 hover:bg-primary/90 active:scale-[0.98] transition-all touch-target"
+            className="w-full text-sm font-medium py-2.5"
           >
             Sign in
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -11,11 +11,7 @@ export default function POSLayout({
       </main>
 
       {/* Right side: Cart / Checkout (fixed width) */}
-      <aside className="w-[400px] flex-shrink-0 flex flex-col bg-background shadow-sm z-10 relative">
-        <div id="cart-root" className="h-full flex flex-col">
-          {/* Cart items and checkout flow will mount here */}
-        </div>
-      </aside>
+      
     </div>
   );
 }
