@@ -45,4 +45,21 @@
 - [x] Schema validated + Prisma client regenerated
 
 ## Phase 4 — Execution 🔲
-- [ ] Not started — blocked on Phase 3.5 completion + wireframe generation before Phase 4.3
+### Phase 4.1 — Foundation & Auth ✅
+- [x] Next.js 15 App Router + Tailwind CSS v4 initialized
+- [x] shadcn/ui configured
+- [x] PostgreSQL database + Prisma schema setup
+- [x] Initial Prisma migration
+- [x] NextAuth.js (Auth.js v5) with credentials provider
+- [x] Seed initial Owner account
+- [x] Setup tRPC v11 with App Router integration
+- [x] Enforce role-based permission checks server-side
+- [x] Scaffold base layouts (POS two-panel, Admin sidebar)
+
+### Phase 4.2 — Products & Settings ✅
+- [x] Settings page (tax rate, shop info) built with tRPC + db integration
+- [x] Products CRUD (Owner only) + soft delete
+- [x] Categories CRUD
+- [x] Users CRUD (Owner manages Cashiers)
+
+### Phase 4.3 — Core POS & Cart (Week 2) 🔲

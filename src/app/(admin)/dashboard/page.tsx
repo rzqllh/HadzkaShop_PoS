@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { StatCard } from "@/components/pos/stat-card";
 import { Money, Receipt, Package, Bank } from "@phosphor-icons/react/dist/ssr";
-import { PageTransition, StaggerContainer, StaggerItem } from "@/components/ui/page-transition";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -79,7 +78,7 @@ export default async function DashboardPage() {
     }).format(n);
 
   return (
-    <PageTransition className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Ringkasan</h1>
         <p className="text-base text-muted-foreground mt-1">
@@ -87,39 +86,39 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StaggerItem>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div>
           <StatCard
             title="Pendapatan Hari Ini"
             value={formatIDR(revenue)}
             icon={<Money size={24} weight="duotone" />}
           />
-        </StaggerItem>
-        <StaggerItem>
+        </div>
+        <div>
           <StatCard
             title="Transaksi Hari Ini"
             value={todayTxCount.toString()}
             icon={<Receipt size={24} weight="duotone" />}
           />
-        </StaggerItem>
-        <StaggerItem>
+        </div>
+        <div>
           <StatCard
             title="Produk Aktif"
             value={productCount.toString()}
             icon={<Package size={24} weight="duotone" />}
           />
-        </StaggerItem>
-        <StaggerItem>
+        </div>
+        <div>
           <StatCard
             title="Status Kasir"
             value={openTill ? `Buka · ${openTill.cashier.name}` : "Tutup"}
             icon={<Bank size={24} weight="duotone" className={openTill ? "text-success" : "text-destructive"} />}
           />
-        </StaggerItem>
-      </StaggerContainer>
+        </div>
+      </div>
 
-      <StaggerContainer className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <StaggerItem className="lg:col-span-2 rounded-2xl border bg-card p-6 shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 rounded-2xl border bg-card p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Pendapatan 7 Hari Terakhir</h2>
           <div className="flex items-end gap-2 h-48 mt-8">
             {last7Days.map((day, i) => {
@@ -141,9 +140,9 @@ export default async function DashboardPage() {
               );
             })}
           </div>
-        </StaggerItem>
+        </div>
         
-        <StaggerItem className="rounded-2xl border bg-card p-6 shadow-sm flex flex-col">
+        <div className="rounded-2xl border bg-card p-6 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Transaksi Terbaru</h2>
           </div>
@@ -164,8 +163,8 @@ export default async function DashboardPage() {
               ))
             )}
           </div>
-        </StaggerItem>
-      </StaggerContainer>
-    </PageTransition>
+        </div>
+      </div>
+    </div>
   );
 }

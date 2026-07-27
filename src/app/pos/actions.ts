@@ -18,7 +18,7 @@ type SubmitTransactionPayload = {
   shippingCost: number;
   subtotal: number;
   total: number;
-  paymentMethod: "CASH" | "QRIS" | "TRANSFER";
+  paymentMethod: "CASH" | "QRIS";
   amountPaid: number;
   note?: string;
 };

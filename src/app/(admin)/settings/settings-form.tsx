@@ -1,172 +1,194 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { updateSettings } from "./actions";
-import type { Shop } from "@/generated/prisma/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { api } from "@/trpc/react";
+import { toast } from "sonner";
+import { useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { motion, type Variants } from "framer-motion";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Save } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type Props = { shop: Omit<Shop, "taxRate"> & { taxRate: number } };
+const formSchema = z.object({
+  name: z.string().min(1, "Nama toko wajib diisi"),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  taxRate: z.number().min(0, "Pajak minimal 0").max(100, "Pajak maksimal 100"),
+  receiptHeader: z.string().optional(),
+  receiptFooter: z.string().optional(),
+});
 
-const initialState = { success: false, message: "", errors: {} as Record<string, string[]> };
+export function SettingsForm() {
+  const { data: settings, isLoading } = api.shop.getSettings.useQuery();
+  const utils = api.useUtils();
 
-const formVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { staggerChildren: 0.1, duration: 0.4, ease: "easeOut" }
-  }
-};
+  const updateSettings = api.shop.updateSettings.useMutation({
+    onSuccess: () => {
+      toast.success("Pengaturan toko berhasil disimpan.");
+      utils.shop.getSettings.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Gagal menyimpan pengaturan.");
+    },
+  });
 
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
-};
-
-export function SettingsForm({ shop }: Props) {
-  const [state, formAction, isPending] = useActionState(updateSettings, initialState);
-
-  const field = (name: string) => ({
-    name,
-    id: name,
-    "aria-describedby": `${name}-error`,
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      address: "",
+      phone: "",
+      taxRate: 0,
+      receiptHeader: "",
+      receiptFooter: "",
+    },
   });
 
   useEffect(() => {
-    if (state.message) {
-      if (state.success) {
-        toast.success(state.message);
-      } else {
-        toast.error(state.message);
-      }
+    if (settings) {
+      form.reset({
+        name: settings.name,
+        address: settings.address || "",
+        phone: settings.phone || "",
+        taxRate: Number(settings.taxRate),
+        receiptHeader: settings.receiptHeader || "",
+        receiptFooter: settings.receiptFooter || "",
+      });
     }
-  }, [state.success, state.message]);
+  }, [settings, form]);
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    updateSettings.mutate(values);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
 
   return (
-    <motion.form 
-      action={formAction} 
-      className="space-y-8 pb-12"
-      initial="hidden"
-      animate="visible"
-      variants={formVariants}
-    >
-      <motion.div variants={itemVariants} className="space-y-1">
-        <h2 className="text-xl font-semibold tracking-tight">Shop Information</h2>
-        <p className="text-sm text-muted-foreground">The primary details identifying your business on receipts and POS.</p>
-      </motion.div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Informasi Dasar</CardTitle>
+        <CardDescription>
+          Data ini akan ditampilkan pada struk pelanggan.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nama Toko</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Hadzka Shop" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      <motion.div variants={itemVariants} className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border-b border-border/40 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="name" className="text-sm font-medium">Shop Name</label>
-            <p className="text-xs text-muted-foreground">The name displayed on the POS.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Input {...field("name")} defaultValue={shop.name} required />
-            {state.errors?.name && <p id="name-error" className="text-xs text-destructive mt-1.5">{state.errors.name[0]}</p>}
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nomor Telepon</FormLabel>
+                    <FormControl>
+                      <Input placeholder="0812..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="taxRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pajak / PPN (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.1" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                    </FormControl>
+                    <FormDescription>
+                      Set ke 0 jika tidak ada pajak.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border-b border-border/40 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
-            <p className="text-xs text-muted-foreground">Used for customer inquiries.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Input {...field("phone")} defaultValue={shop.phone ?? ""} />
-          </div>
-        </div>
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Alamat Lengkap</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Alamat toko..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border-b border-border/40 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="currency" className="text-sm font-medium">Currency</label>
-            <p className="text-xs text-muted-foreground">Default base currency symbol.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Input {...field("currency")} defaultValue={shop.currency} />
-          </div>
-        </div>
+            <FormField
+              control={form.control}
+              name="receiptHeader"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Header Struk</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Pesan di bagian atas struk..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="flex flex-col md:flex-row items-start justify-between p-5 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="address" className="text-sm font-medium">Address</label>
-            <p className="text-xs text-muted-foreground">Physical location of your store.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Textarea {...field("address")} defaultValue={shop.address ?? ""} rows={3} className="resize-none" />
-          </div>
-        </div>
-      </motion.div>
+            <FormField
+              control={form.control}
+              name="receiptFooter"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Footer Struk</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Pesan di bagian bawah struk (mis: Terima kasih)..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      <motion.div variants={itemVariants} className="space-y-1 pt-4">
-        <h2 className="text-xl font-semibold tracking-tight">Tax & Inventory</h2>
-        <p className="text-sm text-muted-foreground">Configure global rates and alerts.</p>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
-        <div className="flex flex-col md:flex-row items-start justify-between p-5 border-b border-border/40 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="taxRate" className="text-sm font-medium">Default Tax Rate (%)</label>
-            <p className="text-xs text-muted-foreground">Applied to new transactions by default. Can be overridden per transaction.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Input {...field("taxRate")} type="number" step="0.01" min="0" max="100" defaultValue={Number(shop.taxRate)} className="font-price" />
-            {state.errors?.taxRate && <p id="taxRate-error" className="text-xs text-destructive mt-1.5">{state.errors.taxRate[0]}</p>}
-          </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row items-start justify-between p-5 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="lowStockThreshold" className="text-sm font-medium">Low Stock Threshold</label>
-            <p className="text-xs text-muted-foreground">Products below this level show a low stock warning in the dashboard.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Input {...field("lowStockThreshold")} type="number" min="0" defaultValue={shop.lowStockThreshold} className="font-price" />
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="space-y-1 pt-4">
-        <h2 className="text-xl font-semibold tracking-tight">Receipt Configuration</h2>
-        <p className="text-sm text-muted-foreground">Customize the printed receipt appearance.</p>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
-        <div className="flex flex-col md:flex-row items-start justify-between p-5 border-b border-border/40 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="receiptHeader" className="text-sm font-medium">Receipt Header</label>
-            <p className="text-xs text-muted-foreground">Appears at the top of the printed receipt.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Textarea {...field("receiptHeader")} defaultValue={shop.receiptHeader ?? ""} rows={2} placeholder="e.g. Thank you for shopping at Hadzka Shop!" className="resize-none" />
-          </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row items-start justify-between p-5 gap-4">
-          <div className="space-y-0.5 md:w-1/3">
-            <label htmlFor="receiptFooter" className="text-sm font-medium">Receipt Footer</label>
-            <p className="text-xs text-muted-foreground">Appears at the bottom of the printed receipt.</p>
-          </div>
-          <div className="w-full md:w-2/3">
-            <Textarea {...field("receiptFooter")} defaultValue={shop.receiptFooter ?? ""} rows={2} placeholder="e.g. Returns accepted within 7 days with receipt." className="resize-none" />
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div variants={itemVariants} className="flex justify-end pt-4">
-        <Button
-          type="submit"
-          disabled={isPending}
-          size="lg"
-          className="rounded-xl px-8 shadow-sm transition-all hover:-translate-y-[1px]"
-        >
-          {isPending ? "Saving Changes…" : "Save Settings"}
-        </Button>
-      </motion.div>
-    </motion.form>
+            <Button type="submit" disabled={updateSettings.isPending}>
+              <Save className="mr-2 h-4 w-4" />
+              {updateSettings.isPending ? "Menyimpan..." : "Simpan Pengaturan"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }

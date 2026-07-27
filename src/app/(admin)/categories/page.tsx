@@ -1,31 +1,27 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { CategoriesClient } from "./categories-client";
+import { api, HydrateClient } from "@/trpc/server";
 
 export default async function CategoriesPage() {
   const session = await auth();
   if (session?.user?.role !== "OWNER") redirect("/pos");
 
-  const categories = await prisma.category.findMany({
-    where: { shopId: session.user.shopId },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      _count: { select: { products: { where: { isActive: true } } } },
-    },
-  });
+  await api.categories.getAll.prefetch();
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Organise your products into categories for quick filtering at the POS.
-          </p>
+    <HydrateClient>
+      <div className="p-8 max-w-5xl mx-auto w-full h-full overflow-y-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Kategori</h1>
+            <p className="text-base text-muted-foreground mt-2">
+              Kelola kategori produk untuk toko Anda.
+            </p>
+          </div>
         </div>
+        <CategoriesClient />
       </div>
-      <CategoriesClient categories={categories} />
-    </div>
+    </HydrateClient>
   );
 }

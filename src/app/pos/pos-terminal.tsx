@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ProductCard } from "@/components/pos/product-card";
 import { CartLineItem } from "@/components/pos/cart-line-item";
-import { PageTransition } from "@/components/ui/page-transition";
 
 // ── Types ──────────────────────────────────────────────
 type Category = { id: string; name: string };
@@ -51,7 +50,7 @@ function formatIDR(n: number) {
   }).format(n);
 }
 
-type PaymentMethod = "CASH" | "QRIS" | "TRANSFER";
+type PaymentMethod = "CASH" | "QRIS";
 
 // ── POS Terminal ───────────────────────────────────────
 export function POSTerminal({ shop, products, categories, cashierName, cashierRole, hasOpenTill, tillOpenedAt }: Props) {
@@ -214,7 +213,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
   }
 
   return (
-    <PageTransition className="flex flex-col h-screen bg-background overflow-hidden">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Till Overlay */}
       <Dialog open={!isTillOpen}>
         <DialogContent className="sm:max-w-[425px]" showCloseButton={false}>
@@ -586,6 +585,6 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
           </div>
         </div>
       </div>
-    </PageTransition>
+    </div>
   );
 }

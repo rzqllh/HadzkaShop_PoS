@@ -1,27 +1,26 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { ProductsClient } from "./products-client";
+import { UsersClient } from "./users-client";
 import { api, HydrateClient } from "@/trpc/server";
 
-export default async function ProductsPage() {
+export default async function UsersPage() {
   const session = await auth();
   if (session?.user?.role !== "OWNER") redirect("/pos");
 
-  await api.categories.getAll.prefetch();
-  await api.products.getAll.prefetch();
+  await api.users.getAll.prefetch();
 
   return (
     <HydrateClient>
-      <div className="p-8 max-w-[1200px] mx-auto w-full h-full overflow-y-auto">
+      <div className="p-8 max-w-5xl mx-auto w-full h-full overflow-y-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Produk</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Pengguna</h1>
             <p className="text-base text-muted-foreground mt-2">
-              Kelola daftar produk, harga, dan SKU.
+              Kelola akun kasir dan owner toko.
             </p>
           </div>
         </div>
-        <ProductsClient />
+        <UsersClient />
       </div>
     </HydrateClient>
   );

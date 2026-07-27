@@ -13,6 +13,7 @@ import {
   Gear,
   Storefront,
   SignOut,
+  Users,
 } from "@phosphor-icons/react";
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/transactions", label: "Riwayat Transaksi", icon: Receipt },
   { href: "/products", label: "Daftar Produk", icon: Package },
   { href: "/categories", label: "Kategori", icon: ListDashes },
+  { href: "/users", label: "Pengguna", icon: Users },
   { href: "/settings", label: "Pengaturan", icon: Gear },
 ];
 

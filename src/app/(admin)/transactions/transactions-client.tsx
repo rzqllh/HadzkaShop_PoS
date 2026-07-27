@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { voidTransaction } from "./actions";
-import { PageTransition } from "@/components/ui/page-transition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +94,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
   }
 
   return (
-    <PageTransition className="flex flex-col flex-1 h-full min-h-0 space-y-4">
+    <div className="flex flex-col flex-1 h-full min-h-0 space-y-4">
       {/* Filters */}
       <div className="flex gap-4 items-end bg-card p-5 rounded-2xl border flex-shrink-0 shadow-sm">
         <div className="flex flex-col gap-1.5 w-48">
@@ -311,6 +310,6 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
           </div>
         )}
       </div>
-    </PageTransition>
+    </div>
   );
 }
