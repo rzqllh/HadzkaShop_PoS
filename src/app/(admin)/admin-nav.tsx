@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { api } from "@/trpc/react";
 
 import {
   ChartLineUp,
@@ -14,6 +16,7 @@ import {
   Storefront,
   SignOut,
   Users,
+  Clock,
 } from "@phosphor-icons/react";
 
 const navItems = [
@@ -22,11 +25,15 @@ const navItems = [
   { href: "/products", label: "Daftar Produk", icon: Package },
   { href: "/categories", label: "Kategori", icon: ListDashes },
   { href: "/users", label: "Pengguna", icon: Users },
+  { href: "/shifts", label: "Sesi Kasir", icon: Clock },
   { href: "/settings", label: "Pengaturan", icon: Gear },
 ];
 
 export function AdminNav() {
   const pathname = usePathname();
+  const { data: lowStockCount } = api.products.getLowStockCount.useQuery(undefined, {
+    refetchInterval: 30000, // Refetch every 30s
+  });
 
   return (
     <aside className="w-64 flex-shrink-0 border-r border-border bg-sidebar flex flex-col h-full">
@@ -52,6 +59,11 @@ export function AdminNav() {
             >
               <item.icon size={24} weight="duotone" />
               {item.label}
+              {item.href === "/products" && lowStockCount !== undefined && lowStockCount > 0 && (
+                <Badge variant="destructive" className="ml-auto flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold">
+                  {lowStockCount}
+                </Badge>
+              )}
             </Link>
           );
         })}

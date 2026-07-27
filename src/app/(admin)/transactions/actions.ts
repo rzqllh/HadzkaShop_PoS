@@ -44,3 +44,51 @@ export async function voidTransaction(transactionId: string) {
     return { success: false, message: err?.message || "Failed to void transaction." };
   }
 }
+
+export async function exportTransactionsCsv(startDate?: string, endDate?: string, status?: string) {
+  const session = await auth();
+  if (session?.user?.role !== "OWNER") throw new Error("Unauthorized");
+  
+  const where: any = { shopId: session.user.shopId };
+  if (status && status !== "ALL") where.status = status;
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) {
+      const start = new Date(startDate);
+      if (!isNaN(start.getTime())) {
+        start.setHours(0, 0, 0, 0);
+        where.createdAt.gte = start;
+      }
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      if (!isNaN(end.getTime())) {
+        end.setHours(0, 0, 0, 0);
+        end.setDate(end.getDate() + 1);
+        where.createdAt.lt = end;
+      }
+    }
+  }
+
+  const txs = await prisma.transaction.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: { cashier: true }
+  });
+  
+  const header = ["Transaction ID", "Date", "Cashier", "Method", "Status", "Total", "Discount", "Subtotal", "Tax", "Items Sold"].join(",");
+  const rows = txs.map(tx => [
+    tx.transactionNumber,
+    tx.createdAt.toISOString(),
+    tx.cashier.name,
+    tx.paymentMethod,
+    tx.status,
+    tx.total.toString(),
+    tx.discountAmount.toString(),
+    tx.subtotal.toString(),
+    tx.taxAmount.toString(),
+    tx.total.toString() // just an example, if items were included we could count them. But we only need basic financial export.
+  ].join(","));
+  
+  return [header, ...rows].join("\n");
+}

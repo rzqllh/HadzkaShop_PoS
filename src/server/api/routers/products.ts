@@ -101,4 +101,66 @@ export const productsRouter = createTRPCRouter({
         data: { isActive: false },
       });
     }),
+
+  getLowStockCount: protectedProcedure.query(async ({ ctx }) => {
+    const products = await ctx.db.product.findMany({
+      where: { shopId: ctx.session.user.shopId, isActive: true },
+      select: { stock: true, lowStockThreshold: true }
+    });
+    return products.filter(p => p.stock <= (p.lowStockThreshold || 0)).length;
+  }),
+
+  adjustStock: ownerProcedure
+    .input(z.object({
+      id: z.string(),
+      type: z.enum(["ADD", "SUBTRACT", "SET"]),
+      quantity: z.number().int().min(0),
+      reason: z.string().min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.$transaction(async (tx) => {
+        const product = await tx.product.findUnique({
+          where: { id: input.id, shopId: ctx.session.user.shopId }
+        });
+        if (!product) throw new TRPCError({ code: "NOT_FOUND" });
+
+        let newStock = product.stock;
+        let actualQuantity = input.quantity;
+        let type: "ADD" | "SUBTRACT" = "ADD";
+
+        if (input.type === "ADD") {
+          newStock += input.quantity;
+          type = "ADD";
+        } else if (input.type === "SUBTRACT") {
+          newStock = Math.max(0, newStock - input.quantity);
+          type = "SUBTRACT";
+        } else if (input.type === "SET") {
+          actualQuantity = Math.abs(input.quantity - product.stock);
+          type = input.quantity > product.stock ? "ADD" : "SUBTRACT";
+          newStock = input.quantity;
+        }
+
+        if (newStock === product.stock) return product;
+
+        await tx.product.update({
+          where: { id: product.id },
+          data: { stock: newStock }
+        });
+
+        await tx.stockMovement.create({
+          data: {
+            shopId: ctx.session.user.shopId,
+            productId: product.id,
+            userId: ctx.session.user.id,
+            type,
+            quantity: actualQuantity,
+            reason: input.reason,
+            previousStock: product.stock,
+            newStock,
+          }
+        });
+
+        return product;
+      });
+    }),
 });

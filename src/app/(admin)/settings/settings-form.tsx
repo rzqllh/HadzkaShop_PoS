@@ -28,6 +28,7 @@ const formSchema = z.object({
   address: z.string().optional(),
   phone: z.string().optional(),
   taxRate: z.number().min(0, "Pajak minimal 0").max(100, "Pajak maksimal 100"),
+  lowStockThreshold: z.number().min(0, "Minimal 0"),
   receiptHeader: z.string().optional(),
   receiptFooter: z.string().optional(),
 });
@@ -53,6 +54,7 @@ export function SettingsForm() {
       address: "",
       phone: "",
       taxRate: 0,
+      lowStockThreshold: 10,
       receiptHeader: "",
       receiptFooter: "",
     },
@@ -65,6 +67,7 @@ export function SettingsForm() {
         address: settings.address || "",
         phone: settings.phone || "",
         taxRate: Number(settings.taxRate),
+        lowStockThreshold: settings.lowStockThreshold,
         receiptHeader: settings.receiptHeader || "",
         receiptFooter: settings.receiptFooter || "",
       });
@@ -139,6 +142,23 @@ export function SettingsForm() {
                 )}
               />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="lowStockThreshold"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Batas Stok Menipis</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                  </FormControl>
+                  <FormDescription>
+                    Peringatan akan muncul jika stok produk berada di bawah angka ini.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

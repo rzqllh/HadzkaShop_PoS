@@ -15,6 +15,7 @@ export const shopRouter = createTRPCRouter({
         address: z.string().optional(),
         phone: z.string().optional(),
         taxRate: z.number().min(0).max(100),
+        lowStockThreshold: z.number().min(0),
         receiptHeader: z.string().optional(),
         receiptFooter: z.string().optional(),
       })

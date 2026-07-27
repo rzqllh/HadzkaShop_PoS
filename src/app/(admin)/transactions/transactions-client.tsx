@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { voidTransaction } from "./actions";
+import { voidTransaction, exportTransactionsCsv } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +70,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
   const searchParams = useSearchParams();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isVoiding, setIsVoiding] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -93,16 +94,47 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
     setIsVoiding(null);
   }
 
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const csv = await exportTransactionsCsv(
+        searchParams.get("startDate") || undefined,
+        searchParams.get("endDate") || undefined,
+        searchParams.get("status") || undefined
+      );
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to export CSV");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col flex-1 h-full min-h-0 space-y-4">
       {/* Filters */}
       <div className="flex gap-4 items-end bg-card p-5 rounded-2xl border flex-shrink-0 shadow-sm">
-        <div className="flex flex-col gap-1.5 w-48">
-          <label className="text-xs font-medium text-muted-foreground">Date</label>
+        <div className="flex flex-col gap-1.5 w-40">
+          <label className="text-xs font-medium text-muted-foreground">Dari Tanggal</label>
           <Input
             type="date"
-            value={searchParams.get("date") || ""}
-            onChange={(e) => updateFilter("date", e.target.value)}
+            value={searchParams.get("startDate") || ""}
+            onChange={(e) => updateFilter("startDate", e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5 w-40">
+          <label className="text-xs font-medium text-muted-foreground">Sampai Tanggal</label>
+          <Input
+            type="date"
+            value={searchParams.get("endDate") || ""}
+            onChange={(e) => updateFilter("endDate", e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5 w-48">
@@ -121,7 +153,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
             </SelectContent>
           </Select>
         </div>
-        {(searchParams.get("date") || searchParams.get("status")) && (
+        {(searchParams.get("startDate") || searchParams.get("endDate") || searchParams.get("status")) && (
           <Button
             variant="ghost"
             onClick={() => router.push("/transactions")}
@@ -130,6 +162,15 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
             Clear Filters
           </Button>
         )}
+        <div className="ml-auto mb-0.5">
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? "Mengekspor..." : "Export CSV"}
+          </Button>
+        </div>
       </div>
 
       {/* Table */}

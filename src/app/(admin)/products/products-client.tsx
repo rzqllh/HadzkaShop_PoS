@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,9 +47,15 @@ const formSchema = z.object({
   name: z.string().min(1, "Nama produk wajib diisi"),
   sku: z.string().min(1, "SKU wajib diisi"),
   price: z.number().min(0, "Harga tidak boleh negatif"),
-  categoryId: z.string().optional().nullable().transform(v => v === "none" ? null : v),
+  categoryId: z.string().nullable().optional(),
   initialStock: z.number().int().min(0),
   lowStockThreshold: z.number().int().min(0),
+});
+
+const adjustStockSchema = z.object({
+  type: z.enum(["ADD", "SUBTRACT", "SET"]),
+  quantity: z.number().int().min(0, "Jumlah tidak boleh negatif"),
+  reason: z.string().min(1, "Alasan wajib diisi"),
 });
 
 export function ProductsClient() {
@@ -59,6 +65,7 @@ export function ProductsClient() {
   
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [adjustStockId, setAdjustStockId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -70,6 +77,15 @@ export function ProductsClient() {
       categoryId: "none",
       initialStock: 0,
       lowStockThreshold: 10,
+    },
+  });
+
+  const adjustForm = useForm<z.infer<typeof adjustStockSchema>>({
+    resolver: zodResolver(adjustStockSchema),
+    defaultValues: {
+      type: "ADD",
+      quantity: 0,
+      reason: "",
     },
   });
 
@@ -99,11 +115,30 @@ export function ProductsClient() {
     onError: (err) => toast.error(err.message),
   });
 
+  const adjustMutation = api.products.adjustStock.useMutation({
+    onSuccess: () => {
+      toast.success("Stok berhasil disesuaikan");
+      utils.products.getAll.invalidate();
+      setAdjustStockId(null);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const payload = {
+      ...values,
+      categoryId: values.categoryId === "none" ? null : values.categoryId,
+    };
     if (editingId) {
-      updateMutation.mutate({ id: editingId, ...values });
+      updateMutation.mutate({ id: editingId, ...payload });
     } else {
-      createMutation.mutate(values);
+      createMutation.mutate(payload as any);
+    }
+  };
+
+  const onAdjustSubmit = (values: z.infer<typeof adjustStockSchema>) => {
+    if (adjustStockId) {
+      adjustMutation.mutate({ id: adjustStockId, ...values });
     }
   };
 
@@ -137,6 +172,15 @@ export function ProductsClient() {
       lowStockThreshold: 10,
     });
     setIsOpen(true);
+  };
+
+  const openAdjustDialog = (product: any) => {
+    setAdjustStockId(product.id);
+    adjustForm.reset({
+      type: "ADD",
+      quantity: 0,
+      reason: "",
+    });
   };
 
   const filteredProducts = products?.filter(p => 
@@ -279,6 +323,78 @@ export function ProductsClient() {
             </Form>
           </DialogContent>
         </Dialog>
+
+        {/* Adjust Stock Dialog */}
+        <Dialog open={!!adjustStockId} onOpenChange={(open) => !open && setAdjustStockId(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Sesuaikan Stok</DialogTitle>
+            </DialogHeader>
+            <Form {...adjustForm}>
+              <form onSubmit={adjustForm.handleSubmit(onAdjustSubmit)} className="space-y-4 pt-4">
+                <FormField
+                  control={adjustForm.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jenis Penyesuaian</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih jenis" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="ADD">Tambah Stok</SelectItem>
+                          <SelectItem value="SUBTRACT">Kurangi Stok</SelectItem>
+                          <SelectItem value="SET">Setel Stok Akhir</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={adjustForm.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jumlah / Nilai</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={adjustForm.control}
+                  name="reason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Alasan</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Misal: Stok masuk, Barang rusak..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setAdjustStockId(null)}>
+                    Batal
+                  </Button>
+                  <Button type="submit" disabled={adjustMutation.isPending}>
+                    Simpan
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="border rounded-md bg-card">
@@ -324,15 +440,24 @@ export function ProductsClient() {
                       {product.stock}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-right space-x-2 whitespace-nowrap">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => openAdjustDialog(product)}
+                      aria-label={`Sesuaikan Stok ${product.name}`}
+                      title="Sesuaikan Stok"
+                    >
+                      <ArrowRightLeft className="w-4 h-4" />
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={() => handleEdit(product)}
                       aria-label={`Ubah ${product.name}`}
+                      title="Ubah Produk"
                     >
-                      <Pencil className="w-4 h-4 mr-1" />
-                      <span className="hidden sm:inline">Ubah</span>
+                      <Pencil className="w-4 h-4" />
                     </Button>
                     <Button 
                       variant="outline" 
@@ -340,9 +465,9 @@ export function ProductsClient() {
                       className="text-destructive hover:bg-destructive/10"
                       onClick={() => handleDelete(product.id)}
                       aria-label={`Hapus ${product.name}`}
+                      title="Hapus Produk"
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      <span className="hidden sm:inline">Hapus</span>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

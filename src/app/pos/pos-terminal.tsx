@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition } from "react";
+import { useState, useMemo, useCallback, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { submitTransaction } from "./actions";
 import { MagnifyingGlass, ShoppingCart, Trash, Money, QrCode } from "@phosphor-icons/react";
@@ -63,12 +63,35 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
   const [cashTendered, setCashTendered] = useState("");
   const [note, setNote] = useState("");
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   // UI state
   const [searchQ, setSearchQ] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [txResult, setTxResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "F2") {
+        e.preventDefault();
+        if (cart.length > 0 && !checkoutOpen) {
+          setCheckoutOpen(true);
+        }
+      } else if (e.key === "Escape") {
+        if (checkoutOpen) {
+          setCheckoutOpen(false);
+        }
+      } else if (e.key === "F3" || (e.ctrlKey && e.key === "k")) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cart.length, checkoutOpen]);
 
   // Till state
   const [isTillOpen, setIsTillOpen] = useState(hasOpenTill);
@@ -341,15 +364,16 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
         {/* ── LEFT: Product Panel ────────────────────── */}
         <div className="flex flex-col flex-1 overflow-hidden border-r border-border relative z-0">
           {/* Search + Category filter */}
-          <div className="flex-shrink-0 p-6 space-y-4 border-b border-border bg-card/80 backdrop-blur-md">
+          <div className="flex-shrink-0 p-6 space-y-4 border-b border-border bg-card">
             <div className="relative max-w-xl">
               <MagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={22} weight="duotone" />
               <Input
+                ref={searchInputRef}
                 type="search"
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
-                placeholder="Cari produk atau SKU…"
-                className="w-full pl-12 h-12 text-base rounded-xl bg-background/80 shadow-sm border-border focus-visible:ring-primary transition-shadow"
+                placeholder="Cari produk atau SKU (F3)…"
+                className="w-full pl-12 h-12 text-base rounded-md bg-background shadow-sm border-border focus-visible:ring-primary transition-shadow"
                 aria-label="Cari produk"
               />
             </div>
@@ -358,7 +382,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 <Button
                   variant={activeCategoryId === "all" ? "default" : "secondary"}
-                  className="rounded-xl font-semibold transition-all hover:-translate-y-[1px]"
+                  className="rounded-md font-semibold transition-all hover:-translate-y-[1px]"
                   onClick={() => setActiveCategoryId("all")}
                 >
                   All
@@ -367,7 +391,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
                   <Button
                     key={cat.id}
                     variant={activeCategoryId === cat.id ? "default" : "secondary"}
-                    className="rounded-xl font-semibold transition-all hover:-translate-y-[1px]"
+                    className="rounded-md font-semibold transition-all hover:-translate-y-[1px]"
                     onClick={() => setActiveCategoryId(cat.id)}
                   >
                     {cat.name}
@@ -378,7 +402,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
           </div>
 
           {/* Product grid */}
-          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
+          <div className="flex-1 overflow-y-auto p-6 bg-background">
             {filteredProducts.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                 <MagnifyingGlass size={64} weight="duotone" className="mb-4 opacity-20" />
@@ -452,7 +476,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
           </div>
 
             {/* Totals + Inputs */}
-          <div className="flex-shrink-0 border-t border-border p-6 bg-card/50 space-y-4">
+          <div className="flex-shrink-0 border-t border-border p-6 bg-secondary space-y-4">
             {/* Totals summary */}
             <div className="space-y-3 text-base">
               <div className="flex justify-between text-muted-foreground">
@@ -557,7 +581,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
                   disabled={cart.length === 0}
                   className="w-full h-12 text-base font-bold shadow-sm transition-all hover:-translate-y-[1px] active:translate-y-[1px]"
                 >
-                  Lanjut Pembayaran
+                  Lanjut Pembayaran (F2)
                 </Button>
               ) : (
                 <div className="grid grid-cols-2 gap-3">

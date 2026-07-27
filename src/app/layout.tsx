@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import { Nunito_Sans, Rubik, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { TRPCReactProvider } from "@/trpc/react";
 import "./globals.css";
 
-const nunitoSans = Nunito_Sans({
-  variable: "--font-nunito-sans",
-  subsets: ["latin"],
-});
-
-const rubik = Rubik({
-  variable: "--font-rubik",
+const geist = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
@@ -33,7 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${nunitoSans.variable} ${rubik.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geist.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <TRPCReactProvider>

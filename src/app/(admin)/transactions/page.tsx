@@ -7,7 +7,7 @@ import { Prisma } from "@/generated/prisma/client";
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; date?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; startDate?: string; endDate?: string; status?: string }>;
 }) {
   const session = await auth();
   if (session?.user?.role !== "OWNER") redirect("/pos");
@@ -24,13 +24,22 @@ export default async function TransactionsPage({
     where.status = params.status as any;
   }
 
-  if (params.date) {
-    const start = new Date(params.date);
-    if (!isNaN(start.getTime())) {
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      where.createdAt = { gte: start, lt: end };
+  if (params.startDate || params.endDate) {
+    where.createdAt = {};
+    if (params.startDate) {
+      const start = new Date(params.startDate);
+      if (!isNaN(start.getTime())) {
+        start.setHours(0, 0, 0, 0);
+        where.createdAt.gte = start;
+      }
+    }
+    if (params.endDate) {
+      const end = new Date(params.endDate);
+      if (!isNaN(end.getTime())) {
+        end.setHours(0, 0, 0, 0);
+        end.setDate(end.getDate() + 1);
+        where.createdAt.lt = end;
+      }
     }
   }
 
