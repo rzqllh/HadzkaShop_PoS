@@ -32,5 +32,17 @@
 - [x] `docs/implementation-plan.md` — phased, checkbox-based execution plan created
 - [ ] **AWAITING REVIEW** — Owner review and approval required before Phase 4
 
+## Phase 3.5 — Review Fixes ✅
+- [x] Item 1: `EXPIRED` added to `TransactionStatus` in schema, PRD, architecture, testing, decisions
+- [x] Item 2: `StockAdjustment` → `StockMovement` with `SALE` type + `referenceId`; atomicity requirement propagated to architecture non-negotiable #4 + implementation-plan Phase 4.4
+- [x] Item 3: RBAC server-side enforcement documented in decisions + implementation-plan Phase 4.1
+- [x] Item 4: Indonesian UI + icon+text rules in design.md + testing.md + decisions
+- [x] Open Q1: `TRANSFER` removed from `PaymentMethod` enum; bank transfers handled as Cash
+- [x] Open Q2: tRPC committed to stack (architecture, decisions, implementation-plan)
+- [x] Open Q3: Wireframe to be generated before Phase 4.3 POS build
+- [x] Open Q4: UX micro-constraints pinned in design.md (max 5 taps, no stacked modals, confirm before destructive, Bayar confirmation)
+- [x] Bonus: orphan `generated/` folder at repo root deleted (stale Prisma client)
+- [x] Schema validated + Prisma client regenerated
+
 ## Phase 4 — Execution 🔲
-- [ ] Not started — blocked on Phase 3 completion
+- [ ] Not started — blocked on Phase 3.5 completion + wireframe generation before Phase 4.3

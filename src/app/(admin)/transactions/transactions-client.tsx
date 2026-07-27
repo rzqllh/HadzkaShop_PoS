@@ -97,7 +97,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
   return (
     <PageTransition className="flex flex-col flex-1 h-full min-h-0 space-y-4">
       {/* Filters */}
-      <div className="flex gap-4 items-end bg-card p-4 rounded-lg border border-border flex-shrink-0 shadow-sm">
+      <div className="flex gap-4 items-end bg-card p-5 rounded-2xl border flex-shrink-0 shadow-sm">
         <div className="flex flex-col gap-1.5 w-48">
           <label className="text-xs font-medium text-muted-foreground">Date</label>
           <Input
@@ -134,14 +134,15 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden flex flex-col min-h-0 flex-1 shadow-sm bg-card">
+      <div className="border rounded-2xl overflow-hidden flex flex-col min-h-0 flex-1 bg-card">
         <div className="overflow-auto flex-1">
           <Table>
-            <TableHeader className="bg-muted/40 sticky top-0 z-10 shadow-sm">
+            <TableHeader className="bg-muted/40 sticky top-0 z-10">
               <TableRow>
                 <TableHead className="whitespace-nowrap">Txn ID</TableHead>
                 <TableHead className="whitespace-nowrap">Date</TableHead>
                 <TableHead className="whitespace-nowrap">Cashier</TableHead>
+                <TableHead className="whitespace-nowrap text-center">Items</TableHead>
                 <TableHead className="whitespace-nowrap">Method</TableHead>
                 <TableHead className="whitespace-nowrap">Status</TableHead>
                 <TableHead className="whitespace-nowrap text-right">Total</TableHead>
@@ -164,6 +165,9 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                       <TableCell className="font-medium">{tx.transactionNumber}</TableCell>
                       <TableCell className="text-muted-foreground">{formatDate(tx.createdAt)}</TableCell>
                       <TableCell className="text-muted-foreground">{tx.cashier.name}</TableCell>
+                      <TableCell className="text-center font-medium">
+                        {tx.items.reduce((acc, item) => acc + item.quantity, 0)}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="font-medium">
                           {tx.paymentMethod}
@@ -172,7 +176,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                       <TableCell>
                         <Badge
                           variant={tx.status === "COMPLETED" ? "default" : tx.status === "CANCELLED" ? "destructive" : "outline"}
-                          className={tx.status === "COMPLETED" ? "bg-success/10 text-success hover:bg-success/20 border-transparent" : tx.status === "CANCELLED" ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border-transparent" : "bg-warning/10 text-warning hover:bg-warning/20 border-transparent"}
+                          className={tx.status === "COMPLETED" ? "bg-success/10 text-success hover:bg-success/20 border-transparent shadow-none" : tx.status === "CANCELLED" ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border-transparent shadow-none" : "bg-warning/10 text-warning hover:bg-warning/20 border-transparent shadow-none"}
                         >
                           {tx.status}
                         </Badge>
@@ -183,7 +187,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                     </TableRow>
                     {expandedId === tx.id && (
                       <TableRow className="bg-muted/10 hover:bg-muted/10">
-                        <TableCell colSpan={6} className="p-0 border-b border-border">
+                        <TableCell colSpan={7} className="p-0 border-b border-border">
                           <div className="p-6 flex gap-8">
                             {/* Items List */}
                             <div className="flex-1 space-y-3">
@@ -206,7 +210,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                               )}
                             </div>
                             {/* Financial Summary */}
-                            <div className="w-72 bg-background p-4 rounded-lg border border-border shadow-sm space-y-2 text-sm self-start">
+                            <div className="w-72 bg-background p-5 rounded-2xl border shadow-sm space-y-2 text-sm self-start">
                               <div className="flex justify-between text-muted-foreground">
                                 <span>Subtotal</span>
                                 <span className="font-price">{formatIDR(tx.subtotal)}</span>
@@ -245,6 +249,15 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                                     <span className="font-price">{formatIDR(tx.changeDue)}</span>
                                   </div>
                                 )}
+                              </div>
+                              <div className="mt-4 pt-4 border-t border-border">
+                                <Button 
+                                  variant="secondary" 
+                                  className="w-full font-medium"
+                                  onClick={() => window.open(`/receipt/${tx.id}`, '_blank')}
+                                >
+                                  Cetak Struk
+                                </Button>
                               </div>
                             </div>
                             {/* Actions */}

@@ -44,14 +44,14 @@ Hadzka Shop needs a digital system to replace manual sales tracking. The current
 - Optional shipping cost (ongkir): manual entry per transaction for delivery orders, included in total and till reconciliation.
 - **Payment methods:**
   - **Cash:** Enter amount tendered, calculate and display change.
-  - **Midtrans QRIS:** Generate QR code, await payment confirmation via webhook.
+  - **Midtrans QRIS:** Generate QR code, await payment confirmation via webhook. QRIS transactions expire after **15 minutes** with no payment — status transitions to `EXPIRED`. Expired transactions cannot be resumed; cashier must start a new transaction with a new order ID.
 - Cancel/void a transaction **before** payment is finalized.
 - Generate PDF receipt on completion (viewable, downloadable, printable via browser).
 
 ### 3. Automatic Stock Updates
 - Stock quantity decrements automatically on completed sale.
 - Low-stock alert threshold (configurable per product).
-- Stock adjustment (manual add/subtract with reason logging — for receiving shipments, damage, etc.).
+- Stock movement ledger (`StockMovement`): every stock change — whether from a completed sale (type `SALE`, auto-linked to the transaction) or a manual adjustment (type `ADD`/`SUBTRACT` with reason logging) — is written to a single unified table. Full stock history auditable from one place.
 
 ### 4. Sales Reports
 - **Daily summary:** total transactions, total revenue, breakdown by payment method, items sold.

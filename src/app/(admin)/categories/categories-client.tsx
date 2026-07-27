@@ -68,7 +68,7 @@ export function CategoriesClient({ categories }: Props) {
         <form
           id="create-cat-form"
           action={createAction}
-          className="border border-border rounded-lg p-4 space-y-3 bg-card"
+          className="border rounded-2xl p-6 space-y-4 bg-card shadow-sm"
         >
           <h2 className="text-sm font-semibold">New Category</h2>
           <div className="flex gap-3">
@@ -125,7 +125,7 @@ export function CategoriesClient({ categories }: Props) {
       )}
 
       {/* Category List */}
-      <div className="border border-border rounded-lg overflow-hidden bg-card">
+      <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
         {categories.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             No categories yet. Add one above to organise your products.

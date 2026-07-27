@@ -66,7 +66,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">The name displayed on the POS.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Input {...field("name")} defaultValue={shop.name} required className="bg-background/50" />
+            <Input {...field("name")} defaultValue={shop.name} required />
             {state.errors?.name && <p id="name-error" className="text-xs text-destructive mt-1.5">{state.errors.name[0]}</p>}
           </div>
         </div>
@@ -77,7 +77,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">Used for customer inquiries.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Input {...field("phone")} defaultValue={shop.phone ?? ""} className="bg-background/50" />
+            <Input {...field("phone")} defaultValue={shop.phone ?? ""} />
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">Default base currency symbol.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Input {...field("currency")} defaultValue={shop.currency} className="bg-background/50" />
+            <Input {...field("currency")} defaultValue={shop.currency} />
           </div>
         </div>
 
@@ -97,7 +97,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">Physical location of your store.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Textarea {...field("address")} defaultValue={shop.address ?? ""} rows={3} className="resize-none bg-background/50" />
+            <Textarea {...field("address")} defaultValue={shop.address ?? ""} rows={3} className="resize-none" />
           </div>
         </div>
       </motion.div>
@@ -114,7 +114,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">Applied to new transactions by default. Can be overridden per transaction.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Input {...field("taxRate")} type="number" step="0.01" min="0" max="100" defaultValue={Number(shop.taxRate)} className="font-price bg-background/50" />
+            <Input {...field("taxRate")} type="number" step="0.01" min="0" max="100" defaultValue={Number(shop.taxRate)} className="font-price" />
             {state.errors?.taxRate && <p id="taxRate-error" className="text-xs text-destructive mt-1.5">{state.errors.taxRate[0]}</p>}
           </div>
         </div>
@@ -125,7 +125,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">Products below this level show a low stock warning in the dashboard.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Input {...field("lowStockThreshold")} type="number" min="0" defaultValue={shop.lowStockThreshold} className="font-price bg-background/50" />
+            <Input {...field("lowStockThreshold")} type="number" min="0" defaultValue={shop.lowStockThreshold} className="font-price" />
           </div>
         </div>
       </motion.div>
@@ -142,7 +142,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">Appears at the top of the printed receipt.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Textarea {...field("receiptHeader")} defaultValue={shop.receiptHeader ?? ""} rows={2} placeholder="e.g. Thank you for shopping at Hadzka Shop!" className="resize-none bg-background/50" />
+            <Textarea {...field("receiptHeader")} defaultValue={shop.receiptHeader ?? ""} rows={2} placeholder="e.g. Thank you for shopping at Hadzka Shop!" className="resize-none" />
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export function SettingsForm({ shop }: Props) {
             <p className="text-xs text-muted-foreground">Appears at the bottom of the printed receipt.</p>
           </div>
           <div className="w-full md:w-2/3">
-            <Textarea {...field("receiptFooter")} defaultValue={shop.receiptFooter ?? ""} rows={2} placeholder="e.g. Returns accepted within 7 days with receipt." className="resize-none bg-background/50" />
+            <Textarea {...field("receiptFooter")} defaultValue={shop.receiptFooter ?? ""} rows={2} placeholder="e.g. Returns accepted within 7 days with receipt." className="resize-none" />
           </div>
         </div>
       </motion.div>
@@ -162,7 +162,7 @@ export function SettingsForm({ shop }: Props) {
           type="submit"
           disabled={isPending}
           size="lg"
-          className="rounded-xl px-8 shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/30"
+          className="rounded-xl px-8 shadow-sm transition-all hover:-translate-y-[1px]"
         >
           {isPending ? "Saving Changes…" : "Save Settings"}
         </Button>

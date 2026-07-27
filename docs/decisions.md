@@ -91,6 +91,70 @@
 
 ## 2026-07-24 — Manual shipping cost (ongkir) added to transaction
 - **Decision:** Add an optional `shipping_cost` field to the checkout flow and Transaction model (default 0). Cashier enters it manually if Hadzka Shop ships via Gojek/Grab/Lalamove. Included in transaction total and till reconciliation.
-- **Reason:** Real-world need to track shipping income collected by the shop. 
+- **Reason:** Real-world need to track shipping income collected by the shop.
 - **Out of Scope:** No courier API integration. No "delivery order" subsystem. No customer address fields. If COD is used (courier collects payment), the cashier simply leaves this field blank.
 - **Reversible?:** Yes — can be expanded into a full fulfillment module later if needed.
+
+## 2026-07-27 — QRIS transaction expiry (EXPIRED status)
+- **Decision:** Add `EXPIRED` as a fourth `TransactionStatus` value. A PENDING QRIS transaction auto-transitions to `EXPIRED` after 15 minutes with no `settlement` webhook. Expiry implementation: lazy check on read (check `createdAt + 15min` whenever the transaction is fetched) — chosen over a cron job because this product runs on Vercel serverless where persistent cron adds complexity; lazy check is simpler, zero infra, acceptable for a single-outlet POS where QRIS transactions are human-paced. Revisit to cron if polling latency becomes a real problem.
+- **Reason:** Without EXPIRED, "customer opened the Snap popup and never paid" has no defined state. PENDING forever is incorrect — it blocks stock logic reasoning and distorts reports.
+- **EXPIRED vs CANCELLED distinction:** `CANCELLED` = cashier actively voided before payment. `EXPIRED` = timed out with no cashier action. These are different operational signals (cashier error vs customer walk-away) and must remain separate in reports.
+- **Stock rule:** Stock is NOT decremented for EXPIRED transactions — same rule as CANCELLED. Stock only decrements on COMPLETED.
+- **Non-resumable:** An EXPIRED transaction cannot be retried. Cashier must start a new transaction. The old Midtrans order ID is stale.
+- **Expiry window:** 15 minutes from `createdAt`. Matches Midtrans Snap token default window — verify actual sandbox value during Phase 4.5 and adjust if Midtrans's current default differs.
+- **Alternatives rejected:** Cron job (unnecessary infra for single-outlet, lazy check is sufficient), merging EXPIRED into CANCELLED (loses the cashier-vs-customer-walkaway signal).
+- **Reversible?:** Yes — can switch from lazy check to cron later; EXPIRED status itself is additive to existing schema.
+
+## 2026-07-27 — Unified stock movement ledger (StockMovement)
+- **Decision:** Rename `StockAdjustment` → `StockMovement`. Replace `StockAdjustmentType { ADD, SUBTRACT }` with `StockMovementType { SALE, ADD, SUBTRACT }`. Add `referenceId String?` to hold the `transactionId` for SALE movements. All stock changes — whether from a completed sale or a manual adjustment — are written to `StockMovement`.
+- **Reason:** `StockAdjustment` only logged manual changes. Sale-driven decrements were implicit in `TransactionItem` only. No single place could answer "why did this product's stock change." The unified ledger makes full stock history auditable from one table.
+- **Critical implementation constraint:** The `StockMovement` row for a SALE must be written in the **same database transaction** as the `Transaction` + `TransactionItem` inserts and stock decrement. A separate follow-up write violates the "Atomic stock operations" non-negotiable (architecture.md #4). No exceptions.
+- **SALE movement fields:** `userId` = cashier who processed the sale; `reason` = auto-filled `"Sale #<transactionNumber>"`; `referenceId` = `transactionId`.
+- **Future:** `REFUND` is reserved as a future enum value. Do not implement refund logic now — naming leaves room without building it.
+- **Alternatives rejected:** Keep separate tables (no unified audit trail), log sale movements as a follow-up write (violates atomicity).
+- **Reversible?:** No — schema rename is a migration. Additive (new SALE type, new referenceId field) is forward-compatible, but the rename from StockAdjustment is a breaking change requiring a migration run.
+
+## 2026-07-27 — RBAC built now, single real user for MVP
+- **Decision:** `Role { OWNER, CASHIER }` is built and enforced now. Only one account (the owner) exists at launch. RBAC is enforced at the API/server layer — middleware or per-route guard — not only in the UI. A Cashier account added later must be unable to reach Owner-only endpoints directly even without UI restriction.
+- **Reason:** Building RBAC now means adding a cashier account later requires zero architectural rework — just create the account. Skipping server-side enforcement because there's only one user today is a shortcut that becomes a security hole the moment a second user is added. RBAC cost at MVP: near-zero. RBAC cost to retrofit later: high.
+- **Auth scope (MVP, deliberately minimal):** Password reset = single email-based reset link flow, no admin-resets-cashier UI (no second account to reset yet). Session expiry = 7 days, refreshed on activity. No device-sharing or concurrent-session hardening — single user, single device.
+- **Owner-only routes:** `/api/products` (write), `/api/reports/*`, `/api/users/*`, `/api/settings/*`. Cashier can read products (GET) and write transactions. See architecture.md for full API contract.
+- **Alternatives rejected:** Client-side-only role gating (broken the moment someone calls the endpoint directly), deferring RBAC entirely (requires rework when second account added).
+- **Reversible?:** N/A — RBAC is additive. More roles or finer permissions can be layered on top.
+
+## 2026-07-27 — Indonesian-language UI + icon+text buttons
+- **Decision:** All UI text is in Bahasa Indonesia. Every primary action button uses icon + text label together, never icon-only. Icon-only is acceptable only for secondary, low-frequency actions where the icon is unambiguous AND has an `aria-label`.
+- **Reason:** End users are UMKM owners and cashiers, many aged 40+, operating under time pressure. Indonesian is the operating language of the shop. Icon-only buttons fail usability for this audience — "what does this icon mean?" is a question that should never slow down a cashier mid-transaction.
+- **Scope:** All labels, buttons, headers, error messages, toasts, empty states in Bahasa Indonesia. Code, variable names, comments stay in English.
+- **Alternatives rejected:** Bilingual UI (adds translation maintenance with no real benefit — users are Indonesian), icon-only primary buttons (fails the "aged 40+ under time pressure" user test).
+- **Reversible?:** Yes — UI copy can be moved to an i18n layer later if English or other languages are needed.
+
+## 2026-07-27 — Remove TRANSFER from PaymentMethod enum
+- **Decision:** Remove `TRANSFER` from `PaymentMethod`. Enum is now `{ CASH, QRIS }` only.
+- **Reason:** `TRANSFER` was never documented in PRD.md or decisions.md. No reconciliation rule for bank transfer was defined — how it settles at till-close was undefined. Since the owner confirmed that bank transfers are handled manually as Cash in the POS (customer pays via transfer, cashier selects Cash to record it), `TRANSFER` as a distinct method adds schema surface with no implemented behavior.
+- **Bank transfer handling:** If a customer pays via bank transfer, cashier records it as Cash. No separate TRANSFER method needed for MVP.
+- **Alternatives rejected:** Keep TRANSFER and define behavior (adds till-close reconciliation complexity, no confirmed need).
+- **Reversible?:** Yes — TRANSFER can be added back as a PaymentMethod in a future migration if manual bank transfer tracking becomes a real need.
+
+## 2026-07-27 — tRPC for API layer
+- **Decision:** Use tRPC for all internal API calls (products, reports, till, transactions). Midtrans webhook stays as a standard Next.js API route (`/api/midtrans/webhook`) — tRPC is not appropriate for external webhook receivers.
+- **Reason:** Type-safe client↔server calls with zero manual type duplication. Fits the Next.js App Router stack (tRPC v11 supports RSC and Server Actions). Single-outlet POS with one client means the overhead-vs-benefit ratio strongly favors tRPC.
+- **Setup:** `@trpc/server`, `@trpc/client`, `@trpc/react-query`. App Router integration via `createServerSideHelpers` or `server.ts` pattern. See implementation-plan.md Phase 4.1.
+- **Alternatives rejected:** Standard REST API routes (no type safety without manual schema sharing), GraphQL (overkill for a POS with fixed data shapes).
+- **Reversible?:** Yes — tRPC sits behind Next.js routes; removing it means replacing routers with route handlers, straightforward migration.
+
+## 2026-07-27 — Motion: dynamic but quiet (CSS-only, MOTION_INTENSITY 3)
+- **Decision:** Raise `MOTION_INTENSITY` from 2 to 3. All motion implemented with CSS `transition` + `@keyframes`. No animation library (GSAP, framer-motion, Motion). Total motion budget: under 300ms per interaction.
+- **Allowed motion:**
+  - Cart item add/remove: height + opacity transition (200ms)
+  - Totals/change due: number value transition on change (150ms)
+  - Route transitions: subtle fade (200ms)
+  - Modal enter/exit: fade + slight scale-up (scale 0.97→1, 200ms)
+  - Product grid: simultaneous fade on filter/search change (no stagger — stagger delays task completion)
+  - Payment success: brief green pulse (existing)
+  - Error: horizontal shake on total area (existing)
+  - Toast: slide in (existing)
+- **Banned motion (unchanged):** scroll-driven animation, parallax, marquee, stagger reveals with delay, any animation that delays task completion, anything under `prefers-reduced-motion: reduce`.
+- **Reason:** Owner specified "dynamic but not noisy." Motion should signal state, not decorate. CSS covers all approved patterns — zero library dependency.
+- **Alternatives rejected:** GSAP (24KB+, wrong tool for a cashier cockpit, overkill for CSS-achievable effects), framer-motion (same problem), no motion at all (flat UI lacks state feedback for rapid transactions).
+- **Reversible?:** Yes — upgrading to a library later is additive if a specific feature requires it.

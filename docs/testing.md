@@ -33,6 +33,9 @@
 - [ ] Late `pending`/`cancelled` notifications don't overwrite `settlement`.
 - [ ] Stock is decremented only on confirmed payment, not on pending.
 - [ ] PDF receipt is generated after successful payment.
+- [ ] PENDING QRIS transaction auto-transitions to EXPIRED after 15 minutes with no settlement webhook.
+- [ ] EXPIRED transactions do not decrement stock.
+- [ ] EXPIRED and CANCELLED are tracked as distinct statuses in reports (do not merge into one bucket).
 
 ## Transaction Cancel/Void
 
@@ -54,6 +57,8 @@
 - [ ] Low-stock alert fires when stock falls below threshold.
 - [ ] Owner/cashier can manually adjust stock with a reason (receive shipment, damage, etc.).
 - [ ] Stock adjustment is logged with before/after values, user, and timestamp.
+- [ ] A completed sale writes a StockMovement row (type SALE, referenceId = transactionId) in the same DB transaction as the stock decrement.
+- [ ] Manual adjustments (ADD/SUBTRACT) and sale-driven movements (SALE) are both queryable from one StockMovement table per product.
 
 ## Reports (Owner)
 
@@ -97,3 +102,5 @@
 - [ ] No `console.log` in production code.
 - [ ] TypeScript strict mode — no `any` without documented reason.
 - [ ] `pnpm lint && pnpm typecheck && pnpm build` pass.
+- [ ] All UI copy is in Bahasa Indonesia (labels, buttons, headers, error messages, toasts, empty states).
+- [ ] Primary action buttons (payment, cart, checkout, void, cancel) show icon + text label together, not icon alone.

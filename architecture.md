@@ -12,6 +12,7 @@
 | **ORM** | Prisma | Type-safe DB access, migrations, schema-as-code. |
 | **Auth** | NextAuth.js (Auth.js v5) | Simple credential-based auth (email + password). Two roles: Owner, Cashier. |
 | **Payment** | Midtrans Snap (server-side token creation, client-side popup) | QRIS via Snap checkout. Server-side webhook for payment confirmation. |
+| **API Layer** | tRPC v11 (App Router integration) | Type-safe client↔server calls. All internal routes (products, reports, till, transactions) are tRPC routers. Midtrans webhook stays a standard API route — external webhooks don't speak tRPC. |
 | **Styling** | Tailwind CSS v4 + shadcn/ui | Utility-first CSS with accessible component primitives. POS-optimized theme. |
 | **PDF** | @react-pdf/renderer or jsPDF | Client-side PDF receipt generation. |
 | **Package Manager** | pnpm | Fast, disk-efficient, strict dependency resolution. |
@@ -34,7 +35,7 @@ src/
 │   ├── api/
 │   │   ├── midtrans/
 │   │   │   └── webhook/          # Midtrans notification handler
-│   │   └── trpc/                 # tRPC API handler (if used)
+│   │   └── trpc/                 # tRPC API handler
 │   ├── layout.tsx
 │   └── page.tsx                  # Redirect to /pos or /login
 │
@@ -119,8 +120,8 @@ src/
 - `shopId` (FK → Shop)
 - `cashierId` (FK → User)
 - `transactionNumber` (string, unique) — human-readable sequential number
-- `status` (enum: PENDING, COMPLETED, CANCELLED)
-- `paymentMethod` (enum: CASH, QRIS)
+- `status` (enum: PENDING, COMPLETED, CANCELLED, EXPIRED) — EXPIRED = PENDING QRIS with no settlement after 15 minutes. Lazy-checked on read. See decisions.md.
+- `paymentMethod` (enum: CASH, QRIS) — TRANSFER removed; bank transfers recorded as Cash.
 - `subtotal` (decimal) — sum of line items before discount/tax
 - `discountType` (enum: PERCENTAGE, FIXED, nullable)
 - `discountValue` (decimal, nullable) — the % or fixed amount entered
@@ -148,17 +149,20 @@ src/
 - `lineTotal` (decimal) — unitPrice × quantity
 - `createdAt`
 
-### StockAdjustment
+### StockMovement
 - `id` (UUID, PK)
 - `shopId` (FK → Shop)
 - `productId` (FK → Product)
-- `userId` (FK → User) — who made the adjustment
-- `type` (enum: ADD, SUBTRACT)
+- `userId` (FK → User) — cashier (for SALE) or staff (for ADD/SUBTRACT)
+- `type` (enum: SALE, ADD, SUBTRACT) — REFUND reserved for future, not implemented
 - `quantity` (int)
-- `reason` (string) — e.g. "Received shipment", "Damaged goods"
-- `previousStock` (int) — stock before adjustment
-- `newStock` (int) — stock after adjustment
+- `reason` (string) — auto-filled `"Sale #<transactionNumber>"` for SALE; manual text for ADD/SUBTRACT
+- `referenceId` (string, nullable) — `transactionId` when type = SALE, null for manual adjustments
+- `previousStock` (int) — stock before movement
+- `newStock` (int) — stock after movement
 - `createdAt`
+
+**Critical:** For SALE movements, the `StockMovement` row must be written in the **same database transaction** as the `Transaction` + `TransactionItem` inserts and the stock decrement. No follow-up writes. See Non-negotiable #4.
 
 ### TillSession
 - `id` (UUID, PK)
@@ -204,6 +208,8 @@ src/
   - Verify notification authenticity before mutating state.
   - Idempotent: re-processing the same notification must not double-process.
   - Monotonic: late `pending` or `cancelled` must not overwrite `settlement`.
+  - On `settlement`: atomically update status → COMPLETED, decrement stock, write StockMovement (type SALE) — all in one DB transaction.
+  - Expiry: PENDING QRIS transactions older than 15 minutes auto-transition to EXPIRED on next read (lazy check). No stock action on EXPIRED.
   - Return 200 after safe acceptance.
 
 ### Products
@@ -257,7 +263,7 @@ src/
 1. **No client secrets in frontend.** Midtrans server key, DB credentials, auth secrets — server-side only.
 2. **No raw SQL outside `lib/db/`.** All database access goes through Prisma. If raw SQL is ever needed, it lives in `lib/db/`.
 3. **No hardcoded business values.** Tax rates, shop info, discount limits, receipt templates — all from database/config.
-4. **Atomic stock operations.** Stock decrements happen inside a database transaction with the sale creation. No race conditions.
+4. **Atomic stock operations.** Stock decrements **and the corresponding StockMovement row (type SALE, referenceId = transactionId)** must happen inside the same database transaction as the sale creation (Transaction + TransactionItem inserts). No race conditions. No follow-up writes outside the transaction.
 5. **Snapshot transactional data.** Product name, price, SKU, and tax rate are copied into the transaction record at sale time. Changing a product's price later must not alter historical receipts.
 6. **No new dependency without checking bundle impact.** Run `pnpm why <package>` and check the size before adding.
 7. **`shopId` on every business entity.** Even though we have one shop, every table that holds business data has a `shopId` FK. No global singletons.

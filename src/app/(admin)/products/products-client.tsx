@@ -3,20 +3,21 @@
 import { useActionState, useState, useEffect } from "react";
 import { createProduct, updateProduct, archiveProduct, restoreProduct } from "./actions";
 import { useRouter } from "next/navigation";
-import { Plus, PencilSimple, Archive, ArrowUUpLeft, Image as ImageIcon } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Archive, ArrowUUpLeft, Image as ImageIcon, UploadSimple, X, FloppyDisk } from "@phosphor-icons/react";
 import { PageTransition } from "@/components/ui/page-transition";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -126,19 +127,19 @@ function ProductDrawer({ product, categories, isOpen, onClose }: DrawerProps) {
   }, [state.success, state.message, onClose, router]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{isNew ? "New Product" : "Edit Product"}</SheetTitle>
-          <SheetDescription>
-            {isNew ? "Add a new product to your inventory." : "Update the details of this product."}
-          </SheetDescription>
-        </SheetHeader>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isNew ? "Produk Baru" : "Edit Produk"}</DialogTitle>
+          <DialogDescription>
+            {isNew ? "Tambahkan produk baru ke inventaris Anda." : "Perbarui detail produk ini."}
+          </DialogDescription>
+        </DialogHeader>
 
-        <form action={formAction} className="space-y-4 pt-4">
+        <form key={product?.id || (isOpen ? 'new-' + Date.now() : 'hidden')} action={formAction} className="space-y-4 pt-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
-              <label htmlFor="p-name" className="text-sm font-medium">Product Name *</label>
+              <label htmlFor="p-name" className="text-sm font-medium">Nama Produk *</label>
               <Input id="p-name" name="name" required defaultValue={product?.name} />
               {state.errors?.name && <p className="text-xs text-destructive">{state.errors.name[0]}</p>}
             </div>
@@ -155,34 +156,39 @@ function ProductDrawer({ product, categories, isOpen, onClose }: DrawerProps) {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="p-price" className="text-sm font-medium">Selling Price (Rp) *</label>
+              <label htmlFor="p-price" className="text-sm font-medium">Harga Jual (Rp) *</label>
               <Input id="p-price" name="price" type="number" min="0" step="1" required defaultValue={product ? Number(product.price) : ""} className="font-price" />
               {state.errors?.price && <p className="text-xs text-destructive">{state.errors.price[0]}</p>}
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="p-costPrice" className="text-sm font-medium">Cost Price (Rp)</label>
+              <label htmlFor="p-costPrice" className="text-sm font-medium">Harga Modal (Rp)</label>
               <Input id="p-costPrice" name="costPrice" type="number" min="0" step="1" defaultValue={product?.costPrice ? Number(product.costPrice) : ""} className="font-price" />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="p-stock" className="text-sm font-medium">Stock</label>
+              <label htmlFor="p-stock" className="text-sm font-medium">Stok</label>
               <Input id="p-stock" name="stock" type="number" min="0" defaultValue={product?.stock ?? 0} className="font-price" />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="p-lowStock" className="text-sm font-medium">Low Stock Alert</label>
+              <label htmlFor="p-lowStock" className="text-sm font-medium">Peringatan Stok Rendah</label>
               <Input id="p-lowStock" name="lowStockThreshold" type="number" min="0" defaultValue={product?.lowStockThreshold ?? ""} placeholder="Use shop default" className="font-price" />
             </div>
 
             <div className="col-span-2 space-y-2">
-              <label htmlFor="p-category" className="text-sm font-medium">Category</label>
+              <label htmlFor="p-category" className="text-sm font-medium">Kategori</label>
               <Select name="categoryId" defaultValue={product?.categoryId ?? undefined}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">— No category —</SelectItem>
+                  <SelectItem value="none">— Tanpa Kategori —</SelectItem>
+                  {product?.categoryId && !categories.some(c => c.id === product.categoryId) && (
+                    <SelectItem value={product.categoryId}>
+                      {product.category?.name ?? product.categoryId}
+                    </SelectItem>
+                  )}
                   {categories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
@@ -201,32 +207,46 @@ function ProductDrawer({ product, categories, isOpen, onClose }: DrawerProps) {
                   )}
                 </div>
                 <div className="flex-1 space-y-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
+                  <label
+                    htmlFor="p-image"
+                    className="flex-1 flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm font-medium transition-colors"
+                  >
+                    <UploadSimple size={16} weight="bold" />
+                    Pilih Gambar
+                  </label>
+                  <input 
+                    id="p-image"
+                    name="image" 
+                    type="file" 
+                    accept="image/*" 
                     onChange={handleFileUpload}
-                    disabled={isUploading || isPending}
-                    className="cursor-pointer"
+                    className="hidden"
                   />
                   <input type="hidden" name="imageUrl" value={imgUrl} />
-                  {isUploading && <p className="text-xs text-primary font-medium animate-pulse">Mengupload...</p>}
+                  {isUploading && <p className="text-xs text-primary font-medium animate-pulse">Mengunggah...</p>}
                 </div>
               </div>
               {state.errors?.imageUrl && <p className="text-xs text-destructive">{state.errors.imageUrl[0]}</p>}
             </div>
           </div>
 
-          <SheetFooter className="mt-8 flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
-              Cancel
+          <DialogFooter className="mt-6 pt-4 border-t flex items-center gap-2 sm:justify-end">
+            <DialogClose 
+              render={
+                <Button type="button" variant="outline" className="w-full sm:w-auto flex items-center gap-2" />
+              }
+            >
+              <X size={16} weight="bold" />
+              Batal
+            </DialogClose>
+            <Button type="submit" disabled={isUploading || isPending} className="w-full sm:w-auto flex items-center gap-2">
+              <FloppyDisk size={16} weight="bold" />
+              Simpan Perubahan
             </Button>
-            <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-              {isPending ? "Saving…" : isNew ? "Create Product" : "Save Changes"}
-            </Button>
-          </SheetFooter>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -269,7 +289,7 @@ export function ProductsClient({ products, categories, showArchived }: Props) {
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
         {products.length === 0 ? (
           <div className="p-12 text-center text-base text-muted-foreground">
             {showArchived ? "Tidak ada produk yang diarsipkan." : "Belum ada produk. Klik “Tambah Produk” untuk memulai."}

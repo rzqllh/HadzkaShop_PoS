@@ -11,7 +11,7 @@
 | Dial | Value | Rationale |
 |------|-------|-----------|
 | `DESIGN_VARIANCE` | 3 | Consistency over novelty. Cashiers need predictability. |
-| `MOTION_INTENSITY` | 2 | Almost static. Motion only for state feedback (payment success, error shake). No scroll animations, no reveals. |
+| `MOTION_INTENSITY` | 3 | Dynamic but quiet. Motion for state feedback only — no decorative animation. |
 | `VISUAL_DENSITY` | 7 | High density — cashier needs products, cart, and payment controls visible simultaneously without scrolling. |
 
 ## Direction
@@ -29,6 +29,19 @@ This should NOT look like:
 - An admin template with 50 sidebar links.
 
 Reference vibe: Square POS, Loyverse, iZettle — dense, functional, high-contrast tools.
+
+## Language & Labeling
+
+- All UI text — labels, buttons, headers, error messages, toasts, empty states — is in **Bahasa Indonesia**. No English UI copy in the shipped product. Code, variable names, and comments stay English.
+- Every primary action button uses **icon + text label together**, never icon-only. This applies to payment buttons, cart actions, nav items, and destructive actions (cancel/void/delete).
+- Icon-only affordances are acceptable only for secondary, low-frequency actions where the icon is unambiguous AND has an `aria-label` (e.g. a settings gear in a header corner) — not for anything in the primary transaction flow.
+
+## UX Constraints
+
+- **Max 5 taps to complete a sale:** search/scan → add → payment method → confirm → done. Do not add steps.
+- **No stacked modals.** One modal at a time. A second action that would open a modal closes the first one instead.
+- **Confirm before destructive actions:** clearing cart, voiding a transaction, deleting a product. No single-tap destruction.
+- **Confirm before payment:** explicit "Bayar" confirmation step required — payment does not auto-submit on payment method selection.
 
 ## Colors
 
@@ -114,7 +127,17 @@ Reference vibe: Square POS, Loyverse, iZettle — dense, functional, high-contra
 - **Easing:** `cubic-bezier(0.16, 1, 0.3, 1)` (ease-out for enters), `ease-in` for exits.
 - **No scroll-driven animation.** No parallax. No stagger reveals. No marquees.
 - **Reduced motion:** All motion collapses to instant under `prefers-reduced-motion: reduce`.
-- **Allowed motion:** Payment success indicator (brief green pulse), error shake (brief horizontal shake on the total), modal fade in/out, toast slide in. That's it.
+- **Allowed motion** (CSS `transition` + `@keyframes` only — no animation library):
+  - Cart item add/remove: height + opacity transition (200ms)
+  - Totals/change due counter: value transition on change (150ms)
+  - Route transitions: subtle fade (200ms)
+  - Modal enter/exit: fade + slight scale-up (scale 0.97→1, 200ms)
+  - Product grid: simultaneous fade on filter/search change (no stagger — stagger delays task completion)
+  - Payment success: brief green pulse on total area (2s auto-dismiss)
+  - Error: horizontal shake on the total (brief)
+  - Toast: slide in
+- **Motion budget:** under 300ms per interaction. No animation that delays a cashier action.
+- **No animation library** (no GSAP, no framer-motion, no Motion). CSS covers all approved patterns.
 
 ## Layout — POS Screen (Primary Interface)
 
@@ -192,3 +215,4 @@ Patterns that agents keep defaulting to that are wrong for this product:
 - ❌ Inter font (too generic — use Geist)
 - ❌ Custom SVG illustrations or hand-drawn icons
 - ❌ Toast notifications for successful sales (use inline success state — toasts are easy to miss during rapid-fire transactions)
+- ❌ Icon-only buttons on any primary action (payment, cart, checkout, void, cancel) — always use icon + text label together

@@ -3,17 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { StatCard } from "@/components/pos/stat-card";
 import { Money, Receipt, Package, Bank } from "@phosphor-icons/react/dist/ssr";
-import { PageTransition } from "@/components/ui/page-transition";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/ui/page-transition";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (session?.user?.role !== "OWNER") redirect("/pos");
 
   const shopId = session.user.shopId;
+  
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [productCount, lowStockCount, todayTxCount, openTill, todayRevenueObj] = await Promise.all([
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(today.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [productCount, lowStockCount, todayTxCount, openTill, todayRevenueObj, recentTxs, weekTxs] = await Promise.all([
     prisma.product.count({ where: { shopId, isActive: true } }),
     prisma.product.count({
       where: {
@@ -23,27 +28,48 @@ export default async function DashboardPage() {
       },
     }).catch(() => 0),
     prisma.transaction.count({
-      where: {
-        shopId,
-        status: "COMPLETED",
-        createdAt: { gte: today },
-      },
+      where: { shopId, status: "COMPLETED", createdAt: { gte: today } },
     }),
     prisma.tillSession.findFirst({
       where: { shopId, status: "OPEN" },
       select: { openedAt: true, cashier: { select: { name: true } } },
     }),
     prisma.transaction.aggregate({
-      where: {
-        shopId,
-        status: "COMPLETED",
-        createdAt: { gte: today },
-      },
+      where: { shopId, status: "COMPLETED", createdAt: { gte: today } },
       _sum: { total: true },
     }),
+    prisma.transaction.findMany({
+      where: { shopId, status: "COMPLETED" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { cashier: { select: { name: true } } },
+    }),
+    prisma.transaction.findMany({
+      where: { shopId, status: "COMPLETED", createdAt: { gte: sevenDaysAgo } },
+      select: { total: true, createdAt: true },
+    })
   ]);
 
   const revenue = Number(todayRevenueObj._sum.total ?? 0);
+
+  // Calculate 7 days revenue map
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sevenDaysAgo);
+    d.setDate(d.getDate() + i);
+    return {
+      date: d,
+      label: d.toLocaleDateString("id-ID", { weekday: "short" }),
+      revenue: 0,
+    };
+  });
+
+  for (const tx of weekTxs) {
+    const txDateStr = tx.createdAt.toISOString().split('T')[0];
+    const day = last7Days.find((d) => d.date.toISOString().split('T')[0] === txDateStr);
+    if (day) day.revenue += Number(tx.total);
+  }
+  
+  const maxRevenue = Math.max(...last7Days.map((d) => d.revenue), 1);
 
   const formatIDR = (n: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -61,34 +87,85 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Pendapatan Hari Ini"
-          value={formatIDR(revenue)}
-          icon={<Money size={24} weight="duotone" />}
-        />
-        <StatCard
-          title="Transaksi Hari Ini"
-          value={todayTxCount.toString()}
-          icon={<Receipt size={24} weight="duotone" />}
-        />
-        <StatCard
-          title="Produk Aktif"
-          value={productCount.toString()}
-          icon={<Package size={24} weight="duotone" />}
-        />
-        <StatCard
-          title="Status Kasir"
-          value={openTill ? `Buka · ${openTill.cashier.name}` : "Tutup"}
-          icon={<Bank size={24} weight="duotone" className={openTill ? "text-success" : "text-destructive"} />}
-        />
-      </div>
+      <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StaggerItem>
+          <StatCard
+            title="Pendapatan Hari Ini"
+            value={formatIDR(revenue)}
+            icon={<Money size={24} weight="duotone" />}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            title="Transaksi Hari Ini"
+            value={todayTxCount.toString()}
+            icon={<Receipt size={24} weight="duotone" />}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            title="Produk Aktif"
+            value={productCount.toString()}
+            icon={<Package size={24} weight="duotone" />}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            title="Status Kasir"
+            value={openTill ? `Buka · ${openTill.cashier.name}` : "Tutup"}
+            icon={<Bank size={24} weight="duotone" className={openTill ? "text-success" : "text-destructive"} />}
+          />
+        </StaggerItem>
+      </StaggerContainer>
 
-      <div className="rounded-lg border border-border bg-card p-6">
-        <p className="text-base text-muted-foreground">
-          Riwayat transaksi dan laporan lebih detail akan muncul di sini (Fase 4.3–4.5).
-        </p>
-      </div>
+      <StaggerContainer className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <StaggerItem className="lg:col-span-2 rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Pendapatan 7 Hari Terakhir</h2>
+          <div className="flex items-end gap-2 h-48 mt-8">
+            {last7Days.map((day, i) => {
+              const heightPct = Math.max((day.revenue / maxRevenue) * 100, 2);
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                  <div className="relative w-full flex justify-center h-full items-end">
+                    <div 
+                      className="w-full max-w-12 bg-primary/20 hover:bg-primary transition-all duration-300 rounded-t-md relative"
+                      style={{ height: `${heightPct}%` }}
+                    >
+                      <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap transition-opacity">
+                        {formatIDR(day.revenue)}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-medium">{day.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </StaggerItem>
+        
+        <StaggerItem className="rounded-2xl border bg-card p-6 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Transaksi Terbaru</h2>
+          </div>
+          <div className="flex-1 space-y-4">
+            {recentTxs.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Belum ada transaksi.</p>
+            ) : (
+              recentTxs.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0">
+                  <div>
+                    <p className="font-medium text-sm">{tx.transactionNumber}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tx.createdAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} • {tx.cashier.name}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-sm font-price">{formatIDR(Number(tx.total))}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </StaggerItem>
+      </StaggerContainer>
     </PageTransition>
   );
 }
