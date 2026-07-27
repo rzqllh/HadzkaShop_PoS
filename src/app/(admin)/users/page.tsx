@@ -11,7 +11,7 @@ export default async function UsersPage() {
 
   return (
     <HydrateClient>
-      <div className="p-8 max-w-5xl mx-auto w-full h-full overflow-y-auto">
+      <div className="p-6 h-full flex flex-col">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Pengguna</h1>

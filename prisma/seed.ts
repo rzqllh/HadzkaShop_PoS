@@ -1,5 +1,5 @@
 import { prisma } from "../src/lib/prisma";
-import bcrypt from "bcryptjs";
+
 
 async function main() {
   console.log("Seeding database...");
@@ -10,7 +10,6 @@ async function main() {
   });
 
   if (!existingOwner) {
-    const passwordHash = await bcrypt.hash("password123", 10);
 
     const shop = await prisma.shop.create({
       data: {
@@ -26,7 +25,6 @@ async function main() {
         shopId: shop.id,
         name: "Admin Owner",
         email: "owner@hadzkashop.com",
-        passwordHash,
         role: "OWNER",
       },
     });

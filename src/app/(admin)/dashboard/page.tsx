@@ -49,18 +49,43 @@ export default async function DashboardPage() {
     }),
     prisma.transaction.findMany({
       where: { shopId, status: "COMPLETED", createdAt: { gte: today } },
-      select: { subtotal: true, discountAmount: true, items: { select: { costPrice: true, quantity: true } } }
+      select: { 
+        subtotal: true, 
+        discountAmount: true, 
+        items: { 
+          select: { 
+            costPrice: true, 
+            quantity: true, 
+            subtotal: true,
+            product: { select: { name: true } } 
+          } 
+        } 
+      }
     })
   ]);
 
   const revenue = Number(todayRevenueObj._sum.total ?? 0);
   
   let todayProfit = 0;
+  const productSalesMap = new Map<string, { name: string; quantity: number; revenue: number }>();
+
   for (const tx of todayFullTxs) {
     const cogs = tx.items.reduce((acc, item) => acc + (Number(item.costPrice || 0) * item.quantity), 0);
     const netRevenue = Number(tx.subtotal) - Number(tx.discountAmount);
     todayProfit += (netRevenue - cogs);
+
+    for (const item of tx.items) {
+      if (!item.product) continue;
+      const existing = productSalesMap.get(item.product.name) || { name: item.product.name, quantity: 0, revenue: 0 };
+      existing.quantity += item.quantity;
+      existing.revenue += Number(item.subtotal);
+      productSalesMap.set(item.product.name, existing);
+    }
   }
+
+  const topSellingProducts = Array.from(productSalesMap.values())
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 5);
 
   // Calculate 7 days revenue map
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -135,7 +160,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-2 rounded-2xl border bg-card p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Pendapatan 7 Hari Terakhir</h2>
           <div className="flex items-end gap-2 h-48 mt-8">
@@ -177,6 +202,31 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                   <p className="font-semibold text-sm font-price">{formatIDR(Number(tx.total))}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        <div className="rounded-2xl border bg-card p-6 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Produk Terlaris Hari Ini</h2>
+          </div>
+          <div className="flex-1 space-y-4">
+            {topSellingProducts.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Belum ada penjualan hari ini.</p>
+            ) : (
+              topSellingProducts.map((p, idx) => (
+                <div key={idx} className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm line-clamp-1">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.quantity} terjual</p>
+                    </div>
+                  </div>
+                  <p className="font-semibold text-sm font-price">{formatIDR(p.revenue)}</p>
                 </div>
               ))
             )}

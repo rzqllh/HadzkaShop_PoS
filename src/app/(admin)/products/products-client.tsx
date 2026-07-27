@@ -401,46 +401,42 @@ export function ProductsClient() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>Nama Produk</TableHead>
-              <TableHead>Kategori</TableHead>
-              <TableHead className="text-right">Harga</TableHead>
-              <TableHead className="text-right">Stok</TableHead>
-              <TableHead className="w-[180px] text-right">Aksi</TableHead>
+              <TableHead className="w-[50px] text-center">No</TableHead>
+              <TableHead className="text-center">SKU</TableHead>
+              <TableHead className="text-center">Nama Produk</TableHead>
+              <TableHead className="text-center">Kategori</TableHead>
+              <TableHead className="text-center">Harga</TableHead>
+              <TableHead className="text-center">Stok</TableHead>
+              <TableHead className="w-[180px] text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoadingProducts ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">Memuat produk...</TableCell>
+                <TableCell colSpan={7} className="text-center py-8">Memuat produk...</TableCell>
               </TableRow>
             ) : filteredProducts?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Tidak ada produk ditemukan.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProducts?.map((product) => (
-                <TableRow key={product.id}>
+              filteredProducts?.map((product, index) => (
+                <TableRow key={product.id} className="even:bg-muted/30">
+                  <TableCell className="font-medium text-center">{index + 1}</TableCell>
                   <TableCell className="font-mono text-xs">{product.sku}</TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>
-                    {product.category ? (
-                      <Badge variant="secondary">{product.category.name}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
+                  <TableCell>{product.category?.name || "-"}</TableCell>
+                  <TableCell className="text-right font-price">
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(product.price))}
                   </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Number(product.price))}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={product.stock <= (product.lowStockThreshold || 0) ? "text-destructive font-bold" : ""}>
+                  <TableCell className="text-center">
+                    <Badge variant={product.stock <= (product.lowStockThreshold || 0) ? "destructive" : "secondary"}>
                       {product.stock}
-                    </span>
+                    </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2 whitespace-nowrap">
+                  <TableCell className="text-center space-x-2 whitespace-nowrap">
                     <Button 
                       variant="outline" 
                       size="sm" 

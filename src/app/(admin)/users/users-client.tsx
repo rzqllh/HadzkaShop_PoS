@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/client";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -42,7 +43,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
-import { useSession } from "next-auth/react";
+
 
 const formSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
@@ -60,7 +61,13 @@ const formSchema = z.object({
 export function UsersClient() {
   const { data: users, isLoading } = api.users.getAll.useQuery();
   const utils = api.useUtils();
-  const { data: session } = useSession();
+  const [sessionUser, setSessionUser] = useState<any>(null);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setSessionUser(data.user);
+    });
+  }, []);
   
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -253,34 +260,36 @@ export function UsersClient() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead className="w-[180px] text-right">Aksi</TableHead>
+              <TableHead className="w-[50px] text-center">No</TableHead>
+              <TableHead className="text-center">Nama</TableHead>
+              <TableHead className="text-center">Email</TableHead>
+              <TableHead className="text-center">Role</TableHead>
+              <TableHead className="w-[180px] text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">Memuat pengguna...</TableCell>
+                <TableCell colSpan={5} className="text-center py-8">Memuat pengguna...</TableCell>
               </TableRow>
             ) : users?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                  Belum ada pengguna.
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Belum ada pengguna lainnya.
                 </TableCell>
               </TableRow>
             ) : (
-              users?.map((user) => (
-                <TableRow key={user.id}>
+              users?.map((user, index) => (
+                <TableRow key={user.id} className="even:bg-muted/30">
+                  <TableCell className="font-medium text-center">{index + 1}</TableCell>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <Badge variant={user.role === "OWNER" ? "default" : "secondary"}>
                       {user.role === "OWNER" ? "Owner" : "Kasir"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-center space-x-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -290,7 +299,7 @@ export function UsersClient() {
                       <Pencil className="w-4 h-4 mr-1" />
                       <span className="hidden sm:inline">Ubah</span>
                     </Button>
-                    {user.id !== session?.user?.id && (
+                    {user.email !== sessionUser?.email && (
                       <Button 
                         variant="outline" 
                         size="sm" 

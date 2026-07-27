@@ -1,26 +1,30 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AdminNav } from "./admin-nav";
-import { SessionProvider } from "next-auth/react";
+import { createClient } from "@/lib/server";
+import { prisma } from "@/lib/prisma";
+import { PageTransition } from "@/components/page-transition";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!session) redirect("/login");
-  if (session.user.role !== "OWNER") redirect("/pos");
+  if (!user || !user.email) redirect("/login");
+
+  const appUser = await prisma.user.findUnique({ where: { email: user.email } });
+  if (!appUser || appUser.role !== "OWNER") redirect("/pos");
 
   return (
-    <SessionProvider session={session}>
-      <div className="flex h-screen w-full overflow-hidden bg-background">
-        <AdminNav />
-        <main className="flex-1 overflow-y-auto bg-muted/20">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      <AdminNav />
+      <main className="flex-1 overflow-y-auto bg-muted/20">
+        <PageTransition>
           {children}
-        </main>
-      </div>
-    </SessionProvider>
+        </PageTransition>
+      </main>
+    </div>
   );
 }

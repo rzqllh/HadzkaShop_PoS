@@ -137,22 +137,24 @@ export function CategoriesClient() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nama Kategori</TableHead>
-              <TableHead className="w-[150px] text-right">Aksi</TableHead>
+              <TableHead className="w-[50px] text-center">No</TableHead>
+              <TableHead className="text-center">Nama Kategori</TableHead>
+              <TableHead className="w-[150px] text-center">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {categories?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                   Belum ada kategori.
                 </TableCell>
               </TableRow>
             )}
-            {categories?.map((cat) => (
-              <TableRow key={cat.id}>
+            {categories?.map((cat, index) => (
+              <TableRow key={cat.id} className="even:bg-muted/30">
+                <TableCell className="font-medium text-center">{index + 1}</TableCell>
                 <TableCell className="font-medium">{cat.name}</TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-center space-x-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 

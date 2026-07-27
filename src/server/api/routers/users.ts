@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, ownerProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
-import bcrypt from "bcryptjs";
 
 export const usersRouter = createTRPCRouter({
   getAll: ownerProcedure.query(async ({ ctx }) => {
@@ -36,13 +35,10 @@ export const usersRouter = createTRPCRouter({
         throw new TRPCError({ code: "CONFLICT", message: "Email sudah digunakan" });
       }
 
-      const passwordHash = await bcrypt.hash(input.password, 10);
-
       return ctx.db.user.create({
         data: {
           name: input.name,
           email: input.email,
-          passwordHash,
           role: input.role,
           shopId: ctx.session.user.shopId,
         },
@@ -80,9 +76,7 @@ export const usersRouter = createTRPCRouter({
         role: input.role,
       };
 
-      if (input.password) {
-        dataToUpdate.passwordHash = await bcrypt.hash(input.password, 10);
-      }
+
 
       return ctx.db.user.update({
         where: { id: input.id, shopId: ctx.session.user.shopId },

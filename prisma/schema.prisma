@@ -67,7 +67,7 @@ model User {
   shopId       String
   name         String
   email        String   @unique
-  passwordHash String
+  passwordHash String?
   role         Role
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())

@@ -179,41 +179,44 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
           <Table>
             <TableHeader className="bg-muted/40 sticky top-0 z-10">
               <TableRow>
+                <TableHead className="w-[50px] text-center">No</TableHead>
+                <TableHead className="whitespace-nowrap text-center">Txn ID</TableHead>
                 <TableHead className="whitespace-nowrap">Txn ID</TableHead>
                 <TableHead className="whitespace-nowrap">Date</TableHead>
                 <TableHead className="whitespace-nowrap">Cashier</TableHead>
                 <TableHead className="whitespace-nowrap text-center">Items</TableHead>
-                <TableHead className="whitespace-nowrap">Method</TableHead>
-                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="whitespace-nowrap text-center">Method</TableHead>
+                <TableHead className="whitespace-nowrap text-center">Status</TableHead>
                 <TableHead className="whitespace-nowrap text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {transactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                     No transactions found.
                   </TableCell>
                 </TableRow>
               ) : (
-                transactions.map((tx) => (
+                transactions.map((tx, index) => (
                   <React.Fragment key={tx.id}>
                     <TableRow
                       onClick={() => setExpandedId(expandedId === tx.id ? null : tx.id)}
-                      className="cursor-pointer hover:bg-accent/30"
+                      className="cursor-pointer hover:bg-accent/30 even:bg-muted/30"
                     >
-                      <TableCell className="font-medium">{tx.transactionNumber}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(tx.createdAt)}</TableCell>
-                      <TableCell className="text-muted-foreground">{tx.cashier.name}</TableCell>
+                      <TableCell className="font-medium text-center">{index + 1 + (currentPage - 1) * pageSize}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{tx.transactionNumber}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(tx.createdAt)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{tx.cashier.name}</TableCell>
                       <TableCell className="text-center font-medium">
                         {tx.items.reduce((acc, item) => acc + item.quantity, 0)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge variant="secondary" className="font-medium">
                           {tx.paymentMethod}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge
                           variant={tx.status === "COMPLETED" ? "default" : tx.status === "CANCELLED" ? "destructive" : "outline"}
                           className={tx.status === "COMPLETED" ? "bg-success/10 text-success hover:bg-success/20 border-transparent shadow-none" : tx.status === "CANCELLED" ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border-transparent shadow-none" : "bg-warning/10 text-warning hover:bg-warning/20 border-transparent shadow-none"}
@@ -226,8 +229,8 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                       </TableCell>
                     </TableRow>
                     {expandedId === tx.id && (
-                      <TableRow className="bg-muted/10 hover:bg-muted/10">
-                        <TableCell colSpan={7} className="p-0 border-b border-border">
+                      <TableRow className="bg-muted/10">
+                        <TableCell colSpan={8} className="p-0 border-b-0 border-border">
                           <div className="p-6 flex gap-8">
                             {/* Items List */}
                             <div className="flex-1 space-y-3">

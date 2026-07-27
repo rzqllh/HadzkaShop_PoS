@@ -3,9 +3,14 @@ import { createTRPCRouter, ownerProcedure } from "@/server/api/trpc";
 
 export const shopRouter = createTRPCRouter({
   getSettings: ownerProcedure.query(async ({ ctx }) => {
-    return ctx.db.shop.findUnique({
+    const shop = await ctx.db.shop.findUnique({
       where: { id: ctx.session.user.shopId },
     });
+    if (!shop) return null;
+    return {
+      ...shop,
+      taxRate: Number(shop.taxRate),
+    };
   }),
 
   updateSettings: ownerProcedure
