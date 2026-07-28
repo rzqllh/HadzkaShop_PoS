@@ -162,7 +162,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
     <div className="flex flex-col flex-1 h-full min-h-0 space-y-4">
       {/* Filters */}
       <div className="flex gap-4 items-end bg-card p-5 rounded-2xl border flex-shrink-0 shadow-sm">
-        <div className="flex flex-col gap-1.5 w-40">
+        <div className="flex flex-col gap-1.5 w-44">
           <label className="text-xs font-medium text-muted-foreground">Dari Tanggal</label>
           <DatePicker
             date={searchParams.get("startDate") ? new Date(searchParams.get("startDate")!) : undefined}
@@ -171,7 +171,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
             placeholder="Pilih tanggal mulai"
           />
         </div>
-        <div className="flex flex-col gap-1.5 w-40">
+        <div className="flex flex-col gap-1.5 w-44">
           <label className="text-xs font-medium text-muted-foreground">Sampai Tanggal</label>
           <DatePicker
             date={searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined}
