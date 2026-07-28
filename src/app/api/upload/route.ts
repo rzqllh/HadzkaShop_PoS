@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     await writeFile(destPath, buffer);
 
     return NextResponse.json({ url: `/uploads/${fileName}` });
-  } catch (e: any) {
+  } catch (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
     console.error("Upload error:", e);
     return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
   }

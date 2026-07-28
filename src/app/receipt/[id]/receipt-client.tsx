@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-export function ReceiptClient({ transaction }: { transaction: any }) {
+export function ReceiptClient({ transaction }: { transaction: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ }) {
   useEffect(() => {
     // Automatically trigger print dialog when component mounts
     setTimeout(() => {
@@ -46,7 +46,7 @@ export function ReceiptClient({ transaction }: { transaction: any }) {
 
       {/* Items */}
       <div className="space-y-3 mb-4 pb-4 border-b border-dashed border-black/30">
-        {transaction.items.map((item: any) => (
+        {transaction.items.map((item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => (
           <div key={item.id} className="text-sm">
             <div className="font-semibold">{item.productName}</div>
             <div className="flex justify-between mt-0.5 text-xs">

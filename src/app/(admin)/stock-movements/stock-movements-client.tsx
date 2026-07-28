@@ -13,7 +13,7 @@ function formatDate(d: Date) {
   }).format(new Date(d));
 }
 
-export function StockMovementsClient({ initialData }: { initialData: { items: any[], total: number } }) {
+export function StockMovementsClient({ initialData }: { initialData: { items: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[], total: number } }) {
   const [page, setPage] = useState(1);
   const pageSize = 25;
 
@@ -25,7 +25,7 @@ export function StockMovementsClient({ initialData }: { initialData: { items: an
   const movements = data?.items || [];
   const total = data?.total || 0;
 
-  const columns: Column<any>[] = [
+  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
     { header: "No", className: "w-[50px] text-center", cell: (_, idx) => <span className="font-medium text-center block">{idx + 1}</span> },
     { header: "Tanggal", className: "whitespace-nowrap text-muted-foreground", cell: (m) => formatDate(m.createdAt) },
     { header: "Produk", className: "whitespace-nowrap font-medium", cell: (m) => <>{m.product.name} <span className="text-muted-foreground font-normal text-xs ml-1">({m.product.sku})</span></> },

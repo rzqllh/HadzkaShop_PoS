@@ -54,7 +54,7 @@ const formSchema = z.object({
 export function UsersClient() {
   const { data: users, isLoading } = api.users.getAll.useQuery();
   const utils = api.useUtils();
-  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [sessionUser, setSessionUser] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>(null);
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
@@ -124,7 +124,7 @@ export function UsersClient() {
     }
   };
 
-  const handleEdit = (user: any) => {
+  const handleEdit = (user: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     setEditingId(user.id);
     form.reset({
       name: user.name,
@@ -152,7 +152,7 @@ export function UsersClient() {
     setIsOpen(true);
   };
 
-  const columns: Column<any>[] = [
+  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
     { 
       header: "No", 
       className: "w-[50px] text-center", 

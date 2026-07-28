@@ -5,7 +5,7 @@ import { formatIDR } from "@/lib/utils";
 interface BaseProduct {
   id: string;
   name: string;
-  price: any;
+  price: number;
   stock: number;
   imageUrl?: string | null;
   lowStockThreshold?: number | null;
@@ -40,6 +40,7 @@ export function ProductCard<T extends BaseProduct>({ product, inCartQty = 0, onA
       <div className="w-full p-2 pb-0">
         <div className="w-full aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden rounded-[14px] relative">
           {product.imageUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
           ) : (
             <span className="text-muted-foreground/40 font-semibold text-xs tracking-wider">NO IMAGE</span>

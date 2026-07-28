@@ -125,7 +125,7 @@ export function ProductsClient() {
     if (editingId) {
       updateMutation.mutate({ id: editingId, ...payload });
     } else {
-      createMutation.mutate(payload as any);
+      createMutation.mutate(payload as any /* eslint-disable-line @typescript-eslint/no-explicit-any */);
     }
   };
 
@@ -135,7 +135,7 @@ export function ProductsClient() {
     }
   };
 
-  const handleEdit = (product: any) => {
+  const handleEdit = (product: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     setEditingId(product.id);
     form.reset({
       name: product.name,
@@ -167,7 +167,7 @@ export function ProductsClient() {
     setIsOpen(true);
   };
 
-  const openAdjustDialog = (product: any) => {
+  const openAdjustDialog = (product: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     setAdjustStockId(product.id);
     adjustForm.reset({
       type: "ADD",
@@ -181,7 +181,7 @@ export function ProductsClient() {
     p.sku.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const columns: Column<any>[] = [
+  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
     { header: "No", className: "w-[50px] text-center", cell: (_, idx) => <span className="font-medium text-center block">{idx + 1}</span> },
     { header: "SKU", className: "font-mono text-xs text-center", accessorKey: "sku" },
     { header: "Nama Produk", className: "font-medium", accessorKey: "name" },

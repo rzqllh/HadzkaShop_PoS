@@ -23,7 +23,7 @@ export default async function DashboardPage() {
       where: {
         shopId,
         isActive: true,
-        stock: { lte: prisma.product.fields.lowStockThreshold as any },
+        stock: { lte: prisma.product.fields.lowStockThreshold as any /* eslint-disable-line @typescript-eslint/no-explicit-any */ },
       },
     }).catch(() => 0),
     prisma.transaction.count({

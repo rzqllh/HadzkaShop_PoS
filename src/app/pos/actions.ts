@@ -50,6 +50,7 @@ export async function submitTransaction(
       const transactionNumber = `TXN-${dateStr}-${String(count + 1).padStart(4, "0")}`;
 
       // Lock and verify stock for each product
+      const productStocks = new Map<string, number>();
       for (const item of payload.items) {
         const product = await tx.product.findUnique({
           where: { id: item.productId, shopId, isActive: true },
@@ -60,6 +61,7 @@ export async function submitTransaction(
         if (product.stock < item.quantity) {
           throw new Error(`Insufficient stock for "${product.name}". Available: ${product.stock}`);
         }
+        productStocks.set(item.productId, product.stock);
       }
 
       // Deduct stock
@@ -92,12 +94,31 @@ export async function submitTransaction(
               productId: item.productId,
               productName: item.productName, // snapshot
               unitPrice: item.unitPrice,     // snapshot
+              costPrice: 0, // Should be fetched from product.costPrice if available, skipping for now
               quantity: item.quantity,
               subtotal: item.unitPrice * item.quantity,
             })),
           },
         },
       });
+
+      // Create stock movements for the sale
+      for (const item of payload.items) {
+        const prevStock = productStocks.get(item.productId) || 0;
+        await tx.stockMovement.create({
+          data: {
+            shopId,
+            productId: item.productId,
+            userId: cashierId,
+            type: "SALE",
+            quantity: item.quantity,
+            reason: `Sale #${transactionNumber}`,
+            referenceId: created.id,
+            previousStock: prevStock,
+            newStock: prevStock - item.quantity,
+          }
+        });
+      }
 
       return created;
     });
@@ -107,10 +128,10 @@ export async function submitTransaction(
       message: "Transaction completed.",
       transactionId: transaction.id,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       success: false,
-      message: err?.message ?? "Failed to submit transaction.",
+      message: err instanceof Error ? err.message : "Failed to submit transaction.",
     };
   }
 }

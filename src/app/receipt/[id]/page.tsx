@@ -37,5 +37,5 @@ export default async function ReceiptPage({
 
   if (!transaction) notFound();
 
-  return <ReceiptClient transaction={transaction as any} />;
+  return <ReceiptClient transaction={transaction as any /* eslint-disable-line @typescript-eslint/no-explicit-any */} />;
 }

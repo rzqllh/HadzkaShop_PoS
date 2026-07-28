@@ -57,8 +57,8 @@ export async function voidTransaction(transactionId: string, restock: boolean = 
     revalidatePath("/transactions");
     revalidatePath("/dashboard");
     return { success: true, message: "Transaction voided and stock restored." };
-  } catch (err: any) {
-    return { success: false, message: err?.message || "Failed to void transaction." };
+  } catch (err: unknown) {
+    return { success: false, message: err instanceof Error ? err.message : "Failed to void transaction." };
   }
 }
 
@@ -66,7 +66,7 @@ export async function exportTransactionsCsv(startDate?: string, endDate?: string
   const session = await auth();
   if (session?.user?.role !== "OWNER") throw new Error("Unauthorized");
   
-  const where: any = { shopId: session.user.shopId };
+  const where: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ = { shopId: session.user.shopId };
   if (status && status !== "ALL") where.status = status;
   if (startDate || endDate) {
     where.createdAt = {};

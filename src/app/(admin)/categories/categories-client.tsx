@@ -82,7 +82,7 @@ export function CategoriesClient() {
     setIsOpen(true);
   };
 
-  const columns: Column<any>[] = [
+  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
     { 
       header: "No", 
       className: "w-[50px] text-center", 

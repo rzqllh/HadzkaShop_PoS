@@ -70,7 +70,7 @@ export const usersRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN", message: "Anda tidak dapat mengubah role Anda sendiri dari Owner" });
       }
 
-      const dataToUpdate: any = {
+      const dataToUpdate = {
         name: input.name,
         email: input.email,
         role: input.role,

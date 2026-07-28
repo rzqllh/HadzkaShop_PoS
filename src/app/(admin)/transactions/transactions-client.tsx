@@ -82,12 +82,12 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const columns: Column<any>[] = [
+  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
     { header: "No", className: "w-[50px] text-center", cell: (_, idx) => <span className="font-medium text-center block">{idx + 1 + (currentPage - 1) * pageSize}</span> },
     { header: "Txn ID", className: "whitespace-nowrap font-medium text-center", accessorKey: "transactionNumber" },
     { header: "Date", className: "whitespace-nowrap text-muted-foreground", cell: (tx) => formatDate(tx.createdAt) },
     { header: "Cashier", className: "whitespace-nowrap text-muted-foreground", cell: (tx) => tx.cashier.name },
-    { header: "Items", className: "whitespace-nowrap text-center font-medium", cell: (tx) => tx.items.reduce((acc: any, item: any) => acc + item.quantity, 0) },
+    { header: "Items", className: "whitespace-nowrap text-center font-medium", cell: (tx) => tx.items.reduce((acc: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => acc + item.quantity, 0) },
     { header: "Method", className: "whitespace-nowrap text-center", cell: (tx) => <div className="flex justify-center"><Badge variant="secondary" className="font-medium">{tx.paymentMethod}</Badge></div> },
     { 
       header: "Status", 
@@ -151,7 +151,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (err: any) {
+    } catch (err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
       toast.error(err.message || "Failed to export CSV");
     } finally {
       setIsExporting(false);

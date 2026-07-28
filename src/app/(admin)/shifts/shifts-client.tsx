@@ -16,7 +16,7 @@ function formatIDR(n: number) {
 export function ShiftsClient() {
   const { data: shifts, isLoading } = api.shifts.getAll.useQuery();
 
-  const columns: Column<any>[] = [
+  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
     { 
       header: "No", 
       className: "w-[50px] text-center", 

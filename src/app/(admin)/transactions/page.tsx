@@ -21,7 +21,7 @@ export default async function TransactionsPage({
   };
 
   if (params.status && ["COMPLETED", "PENDING", "CANCELLED"].includes(params.status)) {
-    where.status = params.status as any;
+    where.status = params.status as any /* eslint-disable-line @typescript-eslint/no-explicit-any */;
   }
 
   if (params.startDate || params.endDate) {

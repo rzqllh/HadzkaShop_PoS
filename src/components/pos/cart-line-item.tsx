@@ -24,6 +24,7 @@ export function CartLineItem<T extends BaseProduct>({ item, onUpdateQty }: CartL
   return (
     <div className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30">
       {item.product.imageUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={item.product.imageUrl}
           alt={item.product.name}

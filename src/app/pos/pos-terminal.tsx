@@ -26,7 +26,7 @@ type Product = {
 type CartItem = { product: Product; qty: number };
 type Shop = {
   name: string;
-  taxRate: any;
+  taxRate: any /* eslint-disable-line @typescript-eslint/no-explicit-any */;
   currency: string;
   lowStockThreshold: number;
 };

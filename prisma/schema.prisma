@@ -30,10 +30,10 @@ enum DiscountType {
 }
 
 enum StockMovementType {
-  SALE      // Driven by a completed transaction — referenceId = transactionId
-  ADD       // Manual addition (received shipment, etc.)
-  SUBTRACT  // Manual subtraction (damage, loss, etc.)
-  REFUND    // Returned items
+  SALE // Driven by a completed transaction — referenceId = transactionId
+  ADD // Manual addition (received shipment, etc.)
+  SUBTRACT // Manual subtraction (damage, loss, etc.)
+  REFUND // Returned items
 }
 
 enum TillStatus {
@@ -77,6 +77,8 @@ model User {
   transactions   Transaction[]
   stockMovements StockMovement[]
   tillSessions   TillSession[]
+
+  @@index([shopId])
 }
 
 model Category {
@@ -89,6 +91,8 @@ model Category {
 
   shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
   products Product[]
+
+  @@index([shopId])
 }
 
 model Product {
@@ -107,8 +111,8 @@ model Product {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  shop             Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  category         Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  shop             Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   transactionItems TransactionItem[]
   stockMovements   StockMovement[]
 
@@ -138,17 +142,20 @@ model Transaction {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
-  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  cashier        User            @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  shop           Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  cashier        User              @relation(fields: [cashierId], references: [id], onDelete: Restrict)
   items          TransactionItem[]
   stockMovements StockMovement[]
+
+  @@index([shopId])
+  @@index([shopId, createdAt])
 }
 
 model TransactionItem {
   id            String   @id @default(uuid())
   transactionId String
   productId     String
-  productName   String   // snapshot at time of sale
+  productName   String // snapshot at time of sale
   unitPrice     Decimal  @db.Decimal(12, 2) // snapshot at time of sale
   costPrice     Decimal? @db.Decimal(12, 2) // snapshot at time of sale for accurate PnL
   quantity      Int
@@ -157,25 +164,30 @@ model TransactionItem {
 
   transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   product     Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([transactionId])
 }
 
 model StockMovement {
   id            String            @id @default(uuid())
   shopId        String
   productId     String
-  userId        String            // cashier (SALE) or staff (ADD/SUBTRACT)
+  userId        String // cashier (SALE) or staff (ADD/SUBTRACT)
   type          StockMovementType
   quantity      Int
-  reason        String            // auto-filled "Sale #TXN-xxx" for SALE type
-  referenceId   String?           // transactionId when type = SALE, null for manual
+  reason        String // auto-filled "Sale #TXN-xxx" for SALE type
+  referenceId   String? // transactionId when type = SALE, null for manual
   previousStock Int
   newStock      Int
   createdAt     DateTime          @default(now())
 
-  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  shop        Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   transaction Transaction? @relation(fields: [referenceId], references: [id], onDelete: SetNull)
+
+  @@index([shopId])
+  @@index([productId])
 }
 
 model TillSession {
@@ -193,4 +205,6 @@ model TillSession {
 
   shop    Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
   cashier User @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+
+  @@index([shopId])
 }

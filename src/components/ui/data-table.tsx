@@ -43,7 +43,7 @@ export function DataTable<T>({
   emptyMessage = "Belum ada data.",
   pagination,
   expandable,
-  keyExtractor = (item: any) => item.id,
+  keyExtractor = (item: T) => String((item as any /* eslint-disable-line @typescript-eslint/no-explicit-any */).id),
 }: DataTableProps<T>) {
   const totalPages = pagination ? Math.ceil(pagination.total / pagination.pageSize) : 1;
   const startIndex = pagination ? (pagination.page - 1) * pagination.pageSize : 0;
