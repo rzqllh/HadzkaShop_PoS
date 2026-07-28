@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { streamText, tool } from 'ai';
+import { streamText, tool, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
@@ -17,11 +17,12 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   const { messages } = await req.json();
+  const coreMessages = await convertToModelMessages(messages);
 
   const result = streamText({
     model: google('gemini-3.6-flash'),
-    system: "You are an intelligent AI Copilot for Hadzka's Shop. You help the shop owner manage their Point of Sale system. You can explain features, check inventory, add stock, and view sales. Be helpful, concise, and professional. Always use tools when asked for specific data. If you are asked to add stock, call the addStock tool. If asked about sales, call getSalesToday.",
-    messages,
+    system: "Anda adalah AI Copilot cerdas untuk aplikasi Point of Sale (POS) Hadzka's Shop. Tugas Anda adalah membantu pemilik toko dan staf dalam mengelola kasir, mengecek inventaris, menambah stok, serta melihat data penjualan harian. Jawablah dalam bahasa Indonesia yang ramah, profesional, dan ringkas. Jika ada anggota keluarga yang tidak mengerti fitur tertentu, Anda bisa menjelaskannya dengan mudah. Selalu gunakan alat (tools) yang tersedia jika diminta informasi atau tindakan yang spesifik. Misalnya, gunakan `addStock` untuk menambah stok, `getInventory` untuk mengecek stok, dan `getSalesToday` untuk melihat penjualan.",
+    messages: coreMessages,
     tools: {
       getInventory: tool({
         description: 'Get the current stock of a product by SKU or Name',
