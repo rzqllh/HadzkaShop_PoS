@@ -38,7 +38,7 @@ export function AnimatedToast({ id, title, description, type }: AnimatedToastPro
         damping: 25,
         mass: 1
       }}
-      className="relative w-full overflow-hidden rounded-2xl bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-2xl p-4 flex gap-4 min-w-[320px] items-start"
+      className="relative w-full rounded-2xl bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-2xl p-4 flex gap-4 min-w-[320px] items-start"
     >
       <div className={`mt-0.5 flex-shrink-0 p-2 rounded-full ${bgColors[type]}`}>
         {icons[type]}
@@ -57,9 +57,9 @@ export function AnimatedToast({ id, title, description, type }: AnimatedToastPro
 
       <button
         onClick={() => sonnerToast.dismiss(id)}
-        className="absolute top-2 right-2 p-1.5 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+        className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-zinc-800 border border-black/10 dark:border-white/10 shadow-md text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:scale-110 transition-all"
       >
-        <XIcon className="w-4 h-4" />
+        <XIcon className="w-3.5 h-3.5" />
       </button>
     </motion.div>
   )
