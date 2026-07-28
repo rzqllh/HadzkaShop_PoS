@@ -9,9 +9,10 @@ interface AuthContainerProps {
   children: React.ReactNode;
   title: string;
   subtitle: React.ReactNode;
+  leftImage?: string;
 }
 
-export function AuthContainer({ children, title, subtitle }: AuthContainerProps) {
+export function AuthContainer({ children, title, subtitle, leftImage = "/images/pos_login_bg_emerald.png" }: AuthContainerProps) {
   const bgImage = "/images/auth-gradient.jpg";
 
   return (
@@ -41,7 +42,7 @@ export function AuthContainer({ children, title, subtitle }: AuthContainerProps)
             className="absolute inset-0"
           >
             <Image
-              src={bgImage}
+              src={leftImage}
               alt="POS Background"
               fill
               className="object-cover"
