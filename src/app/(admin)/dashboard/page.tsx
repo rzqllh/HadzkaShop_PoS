@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   sevenDaysAgo.setDate(today.getDate() - 6);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
-  const [productCount, lowStockCount, todayTxCount, openTill, todayRevenueObj, recentTxs, weekTxs, todayFullTxs] = await Promise.all([
+  const [productCount, lowStockCount, todayTxCount, todayRevenueObj, recentTxs, weekTxs, todayFullTxs] = await Promise.all([
     prisma.product.count({ where: { shopId, isActive: true } }),
     prisma.product.count({
       where: {
@@ -29,10 +29,7 @@ export default async function DashboardPage() {
     prisma.transaction.count({
       where: { shopId, status: "COMPLETED", createdAt: { gte: today } },
     }),
-    prisma.tillSession.findFirst({
-      where: { shopId, status: "OPEN" },
-      select: { openedAt: true, cashier: { select: { name: true } } },
-    }),
+
     prisma.transaction.aggregate({
       where: { shopId, status: "COMPLETED", createdAt: { gte: today } },
       _sum: { total: true },
@@ -151,13 +148,7 @@ export default async function DashboardPage() {
             icon={<Package size={24} weight="duotone" />}
           />
         </div>
-        <div>
-          <StatCard
-            title="Status Kasir"
-            value={openTill ? `Buka · ${openTill.cashier.name}` : "Tutup"}
-            icon={<Bank size={24} weight="duotone" className={openTill ? "text-success" : "text-destructive"} />}
-          />
-        </div>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

@@ -3,7 +3,7 @@ import { shopRouter } from "./routers/shop";
 import { categoriesRouter } from "./routers/categories";
 import { productsRouter } from "./routers/products";
 import { usersRouter } from "./routers/users";
-import { shiftsRouter } from "./routers/shifts";
+
 import { stockMovementsRouter } from "./routers/stockMovements";
 
 export const appRouter = createTRPCRouter({
@@ -11,7 +11,7 @@ export const appRouter = createTRPCRouter({
   categories: categoriesRouter,
   products: productsRouter,
   users: usersRouter,
-  shifts: shiftsRouter,
+
   stockMovements: stockMovementsRouter,
 });
 

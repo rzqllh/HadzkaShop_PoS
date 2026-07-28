@@ -9,7 +9,7 @@ export default async function POSPage() {
 
   const shopId = session.user.shopId;
 
-  const [shop, products, categories, openTill] = await Promise.all([
+  const [shop, products, categories] = await Promise.all([
     prisma.shop.findUnique({
       where: { id: shopId },
       select: { name: true, taxRate: true, currency: true, lowStockThreshold: true },
@@ -22,9 +22,6 @@ export default async function POSPage() {
     prisma.category.findMany({
       where: { shopId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    }),
-    prisma.tillSession.findFirst({
-      where: { shopId, cashierId: session.user.id, status: "OPEN" },
     }),
   ]);
 
@@ -41,8 +38,6 @@ export default async function POSPage() {
       categories={categories}
       cashierName={session.user.name ?? "Cashier"}
       cashierRole={session.user.role as string}
-      hasOpenTill={!!openTill}
-      tillOpenedAt={openTill?.openedAt.toISOString() ?? null}
     />
   );
 }

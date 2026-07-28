@@ -36,10 +36,7 @@ enum StockMovementType {
   REFUND // Returned items
 }
 
-enum TillStatus {
-  OPEN
-  CLOSED
-}
+
 
 model Shop {
   id                String   @id @default(uuid())
@@ -59,7 +56,6 @@ model Shop {
   products       Product[]
   transactions   Transaction[]
   stockMovements StockMovement[]
-  tillSessions   TillSession[]
 }
 
 model User {
@@ -76,7 +72,6 @@ model User {
   shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
   transactions   Transaction[]
   stockMovements StockMovement[]
-  tillSessions   TillSession[]
 
   @@index([shopId])
 }
@@ -190,21 +185,3 @@ model StockMovement {
   @@index([productId])
 }
 
-model TillSession {
-  id           String     @id @default(uuid())
-  shopId       String
-  cashierId    String
-  openedAt     DateTime   @default(now())
-  closedAt     DateTime?
-  startingCash Decimal    @db.Decimal(12, 2)
-  expectedCash Decimal?   @db.Decimal(12, 2)
-  actualCash   Decimal?   @db.Decimal(12, 2)
-  difference   Decimal?   @db.Decimal(12, 2)
-  notes        String?    @db.Text
-  status       TillStatus @default(OPEN)
-
-  shop    Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  cashier User @relation(fields: [cashierId], references: [id], onDelete: Restrict)
-
-  @@index([shopId])
-}

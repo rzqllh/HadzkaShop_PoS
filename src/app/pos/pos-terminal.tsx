@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { submitTransaction } from "./actions";
-import { MagnifyingGlass, ShoppingCart, Trash, Money, QrCode } from "@phosphor-icons/react";
+import { MagnifyingGlass, ShoppingCart, Trash, Money, QrCode, Bell } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -37,8 +37,6 @@ type Props = {
   categories: Category[];
   cashierName: string;
   cashierRole: string;
-  hasOpenTill: boolean;
-  tillOpenedAt: string | null;
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -53,9 +51,13 @@ function formatIDR(n: number) {
 type PaymentMethod = "CASH" | "QRIS";
 
 // ── POS Terminal ───────────────────────────────────────
-export function POSTerminal({ shop, products, categories, cashierName, cashierRole, hasOpenTill, tillOpenedAt }: Props) {
+export function POSTerminal({ shop, products, categories, cashierName, cashierRole }: Props) {
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  const lowStockCount = useMemo(() => {
+    return products.filter(p => p.stock <= (shop.lowStockThreshold || 0)).length;
+  }, [products, shop.lowStockThreshold]);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [taxOverride, setTaxOverride] = useState<number | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
@@ -93,13 +95,6 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [cart.length, checkoutOpen]);
 
-  // Till state
-  const [isTillOpen, setIsTillOpen] = useState(hasOpenTill);
-  const [showCloseTillModal, setShowCloseTillModal] = useState(false);
-  const [startingCash, setStartingCash] = useState("");
-  const [actualCash, setActualCash] = useState("");
-  const [tillNote, setTillNote] = useState("");
-  const [tillError, setTillError] = useState<string | null>(null);
 
   // Derived values
   const defaultTaxRate = Number(shop.taxRate ?? 0);
@@ -203,159 +198,45 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
       }
     });
   }
-
-  // Till actions
-  function handleOpenTill(e: React.FormEvent) {
-    e.preventDefault();
-    setTillError(null);
-    startTransition(async () => {
-      const { openTillSession } = await import("./till-actions");
-      const res = await openTillSession(Number(startingCash) || 0);
-      if (res.success) {
-        setIsTillOpen(true);
-      } else {
-        setTillError(res.message);
-      }
-    });
-  }
-
-  function handleCloseTill(e: React.FormEvent) {
-    e.preventDefault();
-    setTillError(null);
-    startTransition(async () => {
-      const { closeTillSession } = await import("./till-actions");
-      const res = await closeTillSession(Number(actualCash) || 0, tillNote);
-      if (res.success) {
-        setShowCloseTillModal(false);
-        setIsTillOpen(false);
-        setStartingCash("");
-      } else {
-        setTillError(res.message);
-      }
-    });
-  }
-
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* Till Overlay */}
-      <Dialog open={!isTillOpen}>
-        <DialogContent className="sm:max-w-[425px]" showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Buka Kasir</DialogTitle>
-            <DialogDescription>
-              Masukkan modal awal (uang kas) untuk memulai shift ini.
-            </DialogDescription>
-          </DialogHeader>
-          {tillError && (
-            <div role="alert" className="rounded-md px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">
-              {tillError}
-            </div>
-          )}
-          <form onSubmit={handleOpenTill} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <label htmlFor="startingCash" className="text-sm font-medium">Starting Cash (Rp)</label>
-              <Input
-                id="startingCash"
-                type="number"
-                required
-                min="0"
-                value={startingCash}
-                onChange={(e) => setStartingCash(e.target.value)}
-                placeholder="0"
-                autoFocus
-                className="font-price text-lg"
-              />
-            </div>
-            <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0 mt-6">
-              <Button type="submit" disabled={isPending} className="w-full text-lg font-bold py-6">
-                {isPending ? "Membuka…" : "Buka Kasir"}
-              </Button>
-              {cashierRole === "OWNER" && (
-                <Link href="/dashboard" className="text-sm text-center text-muted-foreground hover:text-foreground mt-2">
-                  Kembali ke Ringkasan
-                </Link>
-              )}
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Close Till Modal */}
-      <Dialog open={showCloseTillModal} onOpenChange={setShowCloseTillModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Tutup Kasir</DialogTitle>
-            <DialogDescription>
-              Pastikan jumlah uang tunai di laci sesuai dengan perhitungan sistem.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCloseTill} className="space-y-4 pt-4">
-            {tillError && (
-              <div role="alert" className="rounded-md px-3 py-2 text-sm bg-destructive/10 text-destructive border border-destructive/20">
-                {tillError}
-              </div>
-            )}
-            <div className="space-y-2">
-              <label htmlFor="actualCash" className="text-sm font-medium">Actual Cash in Drawer (Rp)</label>
-              <Input
-                id="actualCash"
-                type="number"
-                required
-                min="0"
-                value={actualCash}
-                onChange={(e) => setActualCash(e.target.value)}
-                placeholder="0"
-                className="font-price text-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="tillNote" className="text-sm font-medium">Notes (Optional)</label>
-              <Input
-                id="tillNote"
-                value={tillNote}
-                onChange={(e) => setTillNote(e.target.value)}
-                placeholder="Catatan penutupan..."
-              />
-            </div>
-            <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => setShowCloseTillModal(false)}>
-                Batal
-              </Button>
-              <Button type="submit" variant="destructive" disabled={isPending}>
-                {isPending ? "Closing…" : "Confirm & Close Till"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Header */}
       <header className="flex items-center justify-between px-6 h-16 border-b border-border bg-card flex-shrink-0">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 w-1/4">
           <span className="font-bold text-lg">{shop.name}</span>
-          <span className="text-sm text-muted-foreground hidden sm:inline">
+          <span className="text-sm text-muted-foreground hidden lg:inline truncate">
             {cashierName} · {cashierRole}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          {isTillOpen && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { setTillError(null); setShowCloseTillModal(true); setActualCash(""); setTillNote(""); }}
-              className="text-destructive hover:text-destructive/80 border-destructive/30 font-semibold"
-            >
-              Tutup Kasir
+        
+        <div className="flex-1 flex justify-center max-w-xl px-4">
+          <div className="relative w-full">
+            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} weight="duotone" />
+            <Input
+              ref={searchInputRef}
+              type="search"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              placeholder="Cari produk atau SKU (F3)…"
+              className="w-full pl-10 h-10 text-sm rounded-full bg-muted/50 border-transparent focus-visible:ring-primary transition-shadow focus-visible:bg-background"
+              aria-label="Cari produk"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 w-1/4">
+          <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" onClick={() => {}}>
+            <Bell size={24} weight="duotone" />
+            {lowStockCount > 0 && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-card" />
+            )}
+          </Button>
+          <Link href="/dashboard">
+            <Button variant="outline" size="sm" className="font-semibold shadow-sm hidden sm:flex">
+              Dashboard
             </Button>
-          )}
-          {cashierRole === "OWNER" && (
-            <Link
-              href="/dashboard"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-md touch-target border border-border ml-2 font-semibold"
-            >
-              Admin Panel ↗
-            </Link>
-          )}
+          </Link>
         </div>
       </header>
 
@@ -363,21 +244,8 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
       <div className="flex flex-1 overflow-hidden">
         {/* ── LEFT: Product Panel ────────────────────── */}
         <div className="flex flex-col flex-1 overflow-hidden border-r border-border relative z-0">
-          {/* Search + Category filter */}
-          <div className="flex-shrink-0 p-6 space-y-4 border-b border-border bg-card">
-            <div className="relative max-w-xl">
-              <MagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={22} weight="duotone" />
-              <Input
-                ref={searchInputRef}
-                type="search"
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                placeholder="Cari produk atau SKU (F3)…"
-                className="w-full pl-12 h-12 text-base rounded-md bg-background shadow-sm border-border focus-visible:ring-primary transition-shadow"
-                aria-label="Cari produk"
-              />
-            </div>
-            {/* Category tabs */}
+          {/* Category filter */}
+          <div className="flex-shrink-0 px-6 py-4 border-b border-border bg-card">
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 <Button

@@ -114,6 +114,18 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
     router.push(`?${params.toString()}`);
   }
 
+  function setPreset(days: number) {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    
+    const params = new URLSearchParams(searchParams);
+    params.set("startDate", format(start, "yyyy-MM-dd"));
+    params.set("endDate", format(end, "yyyy-MM-dd"));
+    params.set("page", "1");
+    router.push(`?${params.toString()}`);
+  }
+
   function openVoidDialog(id: string) {
     setVoidTargetId(id);
     setRestock(true);
@@ -205,7 +217,12 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
             Clear Filters
           </Button>
         )}
-        <div className="ml-auto mb-0.5">
+        <div className="ml-auto mb-0.5 flex gap-2">
+          <div className="flex bg-muted/50 rounded-md p-1 items-center border hidden lg:flex">
+            <Button variant="ghost" size="sm" className="h-8 text-xs px-3" onClick={() => setPreset(0)}>Hari Ini</Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs px-3" onClick={() => setPreset(7)}>7 Hari</Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs px-3" onClick={() => setPreset(30)}>30 Hari</Button>
+          </div>
           <Button 
             variant="outline" 
             onClick={handleExport}

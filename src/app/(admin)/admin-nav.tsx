@@ -37,7 +37,6 @@ const navItems = [
   { href: "/products", label: "Daftar Produk", icon: Package },
   { href: "/categories", label: "Kategori", icon: ListDashes },
   { href: "/users", label: "Pengguna", icon: Users },
-  { href: "/shifts", label: "Sesi Kasir", icon: Clock },
   { href: "/settings", label: "Pengaturan", icon: Gear },
 ];
 
