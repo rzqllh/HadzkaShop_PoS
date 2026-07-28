@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface Column<T> {
   header: React.ReactNode;
@@ -74,35 +75,47 @@ export function DataTable<T>({
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((item, index) => {
-                const id = keyExtractor(item);
-                const isExpanded = expandable?.expandedId === id;
-                return (
-                  <React.Fragment key={id}>
-                    <TableRow 
-                      onClick={() => expandable?.onExpand(id)}
-                      className={`group transition-colors border-b-border/30 hover:bg-accent/30 even:bg-muted/20 ${expandable ? "cursor-pointer" : ""}`}
-                    >
-                      {columns.map((col, i) => (
-                        <TableCell key={i} className={col.className}>
-                          {col.cell 
-                            ? col.cell(item, startIndex + index) 
-                            : col.accessorKey 
-                              ? String(item[col.accessorKey] ?? "-") 
-                              : null}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                    {isExpanded && expandable?.renderExpanded && (
-                      <TableRow className="bg-muted/10 border-b-border/30 shadow-inner">
-                        <TableCell colSpan={columns.length} className="p-0 border-b-0">
-                          {expandable.renderExpanded(item)}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                );
-              })
+              <AnimatePresence mode="popLayout">
+                {data.map((item, index) => {
+                  const id = keyExtractor(item);
+                  const isExpanded = expandable?.expandedId === id;
+                  return (
+                    <React.Fragment key={id}>
+                      <motion.tr 
+                        layout
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -15 }}
+                        transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
+                        onClick={() => expandable?.onExpand(id)}
+                        className={`hover:bg-muted/50 data-[state=selected]:bg-muted group transition-colors duration-200 border-b-border/30 hover:bg-accent/40 even:bg-muted/20 ${expandable ? "cursor-pointer" : ""}`}
+                      >
+                        {columns.map((col, i) => (
+                          <TableCell key={i} className={col.className}>
+                            {col.cell 
+                              ? col.cell(item, startIndex + index) 
+                              : col.accessorKey 
+                                ? String(item[col.accessorKey] ?? "-") 
+                                : null}
+                          </TableCell>
+                        ))}
+                      </motion.tr>
+                      {isExpanded && expandable?.renderExpanded && (
+                        <motion.tr 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-muted/10 border-b-border/30 shadow-inner overflow-hidden"
+                        >
+                          <TableCell colSpan={columns.length} className="p-0 border-b-0">
+                            {expandable.renderExpanded(item)}
+                          </TableCell>
+                        </motion.tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </AnimatePresence>
             )}
           </TableBody>
         </Table>

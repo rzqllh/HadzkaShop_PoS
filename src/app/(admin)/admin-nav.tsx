@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/client";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/trpc/react";
@@ -81,14 +82,21 @@ export function AdminNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 ${isMinimized ? "justify-center px-0" : "px-4"} py-3 rounded-md text-base font-medium transition-colors touch-target whitespace-nowrap ${
+                className={`relative flex items-center gap-3 ${isMinimized ? "justify-center px-0" : "px-4"} py-3 rounded-md text-base font-medium transition-colors touch-target whitespace-nowrap ${
                   active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    ? "text-sidebar-primary-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 }`}
               >
-                <item.icon size={24} weight="duotone" className="flex-shrink-0" />
-                {!isMinimized && <span>{item.label}</span>}
+                {active && (
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute inset-0 bg-sidebar-primary rounded-md"
+                    transition={{ type: "tween", ease: "circOut", duration: 0.35 }}
+                  />
+                )}
+                <item.icon size={24} weight="duotone" className="flex-shrink-0 relative z-10" />
+                {!isMinimized && <span className="relative z-10">{item.label}</span>}
                 
                 {/* Badge if not minimized */}
                 {!isMinimized && item.href === "/products" && lowStockCount !== undefined && lowStockCount > 0 && (
