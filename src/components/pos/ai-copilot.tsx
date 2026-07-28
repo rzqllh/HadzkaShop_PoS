@@ -24,7 +24,7 @@ export function AICopilot() {
   const [suggestions, setSuggestions] = useState<{label: string, prompt: string, emoji: string}[] | null>(null);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   
-  const { messages, status, sendMessage, setMessages } = useChat({});
+  const { messages, status, sendMessage, setMessages } = useChat({ maxSteps: 5 });
   
   const isLoading = status === 'submitted' || status === 'streaming';
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -182,12 +182,24 @@ export function AICopilot() {
                           if (part.type?.startsWith('tool-') || part.type === 'dynamic-tool') {
                             const toolName = part.toolName || (part.type.startsWith('tool-') ? part.type.slice(5) : 'unknown');
                             const isResult = part.state === 'result';
-                            const message = isResult ? `Selesai: ${toolName}` : `Memproses: ${toolName}...`;
+                            let argsString = '';
+                            try {
+                              if (part.args) {
+                                argsString = `(${JSON.stringify(part.args)})`;
+                              }
+                            } catch (e) {}
+                            
+                            const message = isResult ? `Selesai: ${toolName}` : `Memproses: ${toolName} ${argsString}...`;
                             
                             return (
-                              <div key={part.toolCallId || index} className="mt-2 p-2 bg-background border border-border/50 rounded-md text-xs font-mono flex items-center gap-2 text-muted-foreground">
-                                {!isResult && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
-                                {message}
+                              <div key={part.toolCallId || index} className="mt-2 p-2 bg-background border border-border/50 rounded-md text-xs font-mono flex flex-col gap-1 text-muted-foreground break-all">
+                                <div className="flex items-center gap-2">
+                                  {!isResult && <Loader2 className="w-3 h-3 animate-spin text-primary flex-shrink-0" />}
+                                  <span className="font-semibold">{isResult ? `Selesai: ${toolName}` : `Memproses: ${toolName}`}</span>
+                                </div>
+                                {!isResult && argsString && (
+                                  <div className="pl-5 opacity-75">{argsString}</div>
+                                )}
                               </div>
                             );
                           }
