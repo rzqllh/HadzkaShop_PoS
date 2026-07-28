@@ -3,6 +3,7 @@ import { AdminNav } from "./admin-nav";
 import { createClient } from "@/lib/server";
 import { prisma } from "@/lib/prisma";
 import { PageTransition } from "@/components/page-transition";
+import { AICopilot } from "@/components/pos/ai-copilot";
 
 export default async function AdminLayout({
   children,
@@ -25,6 +26,7 @@ export default async function AdminLayout({
           {children}
         </PageTransition>
       </main>
+      <AICopilot />
     </div>
   );
 }
