@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { voidTransaction, exportTransactionsCsv } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -162,18 +164,20 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
       <div className="flex gap-4 items-end bg-card p-5 rounded-2xl border flex-shrink-0 shadow-sm">
         <div className="flex flex-col gap-1.5 w-40">
           <label className="text-xs font-medium text-muted-foreground">Dari Tanggal</label>
-          <Input
-            type="date"
-            value={searchParams.get("startDate") || ""}
-            onChange={(e) => updateFilter("startDate", e.target.value)}
+          <DatePicker
+            date={searchParams.get("startDate") ? new Date(searchParams.get("startDate")!) : undefined}
+            setDate={(d) => updateFilter("startDate", d ? format(d, "yyyy-MM-dd") : "")}
+            className="w-full"
+            placeholder="Pilih tanggal mulai"
           />
         </div>
         <div className="flex flex-col gap-1.5 w-40">
           <label className="text-xs font-medium text-muted-foreground">Sampai Tanggal</label>
-          <Input
-            type="date"
-            value={searchParams.get("endDate") || ""}
-            onChange={(e) => updateFilter("endDate", e.target.value)}
+          <DatePicker
+            date={searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined}
+            setDate={(d) => updateFilter("endDate", d ? format(d, "yyyy-MM-dd") : "")}
+            className="w-full"
+            placeholder="Pilih tanggal akhir"
           />
         </div>
         <div className="flex flex-col gap-1.5 w-48">
