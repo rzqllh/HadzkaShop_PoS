@@ -22,14 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import { toast } from "sonner";
 
 type Transaction = {
@@ -86,6 +79,30 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
   const [restock, setRestock] = useState(true);
 
   const totalPages = Math.ceil(totalCount / pageSize);
+
+  const columns: Column<any>[] = [
+    { header: "No", className: "w-[50px] text-center", cell: (_, idx) => <span className="font-medium text-center block">{idx + 1 + (currentPage - 1) * pageSize}</span> },
+    { header: "Txn ID", className: "whitespace-nowrap font-medium text-center", accessorKey: "transactionNumber" },
+    { header: "Date", className: "whitespace-nowrap text-muted-foreground", cell: (tx) => formatDate(tx.createdAt) },
+    { header: "Cashier", className: "whitespace-nowrap text-muted-foreground", cell: (tx) => tx.cashier.name },
+    { header: "Items", className: "whitespace-nowrap text-center font-medium", cell: (tx) => tx.items.reduce((acc: any, item: any) => acc + item.quantity, 0) },
+    { header: "Method", className: "whitespace-nowrap text-center", cell: (tx) => <div className="flex justify-center"><Badge variant="secondary" className="font-medium">{tx.paymentMethod}</Badge></div> },
+    { 
+      header: "Status", 
+      className: "whitespace-nowrap text-center",
+      cell: (tx) => (
+        <div className="flex justify-center">
+          <Badge
+            variant={tx.status === "COMPLETED" ? "default" : tx.status === "CANCELLED" ? "destructive" : "outline"}
+            className={tx.status === "COMPLETED" ? "bg-success/10 text-success hover:bg-success/20 border-transparent shadow-none" : tx.status === "CANCELLED" ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border-transparent shadow-none" : "bg-warning/10 text-warning hover:bg-warning/20 border-transparent shadow-none"}
+          >
+            {tx.status}
+          </Badge>
+        </div>
+      )
+    },
+    { header: "Total", className: "whitespace-nowrap text-right font-price font-semibold", cell: (tx) => formatIDR(tx.total) },
+  ];
 
   function updateFilter(key: string, value: string | null | undefined) {
     const params = new URLSearchParams(searchParams);
@@ -195,187 +212,110 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
         </div>
       </div>
 
-      {/* Table */}
-      <div className="border rounded-2xl overflow-hidden flex flex-col min-h-0 flex-1 bg-card">
-        <div className="overflow-auto flex-1">
-          <Table>
-            <TableHeader className="bg-muted/40 sticky top-0 z-10">
-              <TableRow>
-                <TableHead className="w-[50px] text-center">No</TableHead>
-                <TableHead className="whitespace-nowrap text-center">Txn ID</TableHead>
-                <TableHead className="whitespace-nowrap">Txn ID</TableHead>
-                <TableHead className="whitespace-nowrap">Date</TableHead>
-                <TableHead className="whitespace-nowrap">Cashier</TableHead>
-                <TableHead className="whitespace-nowrap text-center">Items</TableHead>
-                <TableHead className="whitespace-nowrap text-center">Method</TableHead>
-                <TableHead className="whitespace-nowrap text-center">Status</TableHead>
-                <TableHead className="whitespace-nowrap text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                    No transactions found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                transactions.map((tx, index) => (
-                  <React.Fragment key={tx.id}>
-                    <TableRow
-                      onClick={() => setExpandedId(expandedId === tx.id ? null : tx.id)}
-                      className="cursor-pointer hover:bg-accent/30 even:bg-muted/30"
-                    >
-                      <TableCell className="font-medium text-center">{index + 1 + (currentPage - 1) * pageSize}</TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">{tx.transactionNumber}</TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(tx.createdAt)}</TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{tx.cashier.name}</TableCell>
-                      <TableCell className="text-center font-medium">
-                        {tx.items.reduce((acc, item) => acc + item.quantity, 0)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary" className="font-medium">
-                          {tx.paymentMethod}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={tx.status === "COMPLETED" ? "default" : tx.status === "CANCELLED" ? "destructive" : "outline"}
-                          className={tx.status === "COMPLETED" ? "bg-success/10 text-success hover:bg-success/20 border-transparent shadow-none" : tx.status === "CANCELLED" ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border-transparent shadow-none" : "bg-warning/10 text-warning hover:bg-warning/20 border-transparent shadow-none"}
-                        >
-                          {tx.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-price font-semibold">
-                        {formatIDR(tx.total)}
-                      </TableCell>
-                    </TableRow>
-                    {expandedId === tx.id && (
-                      <TableRow className="bg-muted/10">
-                        <TableCell colSpan={8} className="p-0 border-b-0 border-border">
-                          <div className="p-6 flex gap-8">
-                            {/* Items List */}
-                            <div className="flex-1 space-y-3">
-                              <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-3 tracking-wider">Order Items</h4>
-                              <div className="space-y-2">
-                                {tx.items.map((item) => (
-                                  <div key={item.id} className="flex justify-between text-sm">
-                                    <span>
-                                      <span className="font-medium">{item.quantity}x</span> {item.productName} <span className="text-muted-foreground text-xs ml-1">({formatIDR(item.unitPrice)})</span>
-                                    </span>
-                                    <span className="font-price text-muted-foreground">{formatIDR(item.subtotal)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              {tx.note && (
-                                <div className="mt-5 pt-5 border-t border-border/50">
-                                  <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2 tracking-wider">Notes</h4>
-                                  <p className="text-sm italic text-muted-foreground">{tx.note}</p>
-                                </div>
-                              )}
-                            </div>
-                            {/* Financial Summary */}
-                            <div className="w-72 bg-background p-5 rounded-2xl border shadow-sm space-y-2 text-sm self-start">
-                              <div className="flex justify-between text-muted-foreground">
-                                <span>Subtotal</span>
-                                <span className="font-price">{formatIDR(tx.subtotal)}</span>
-                              </div>
-                              {tx.discountAmount > 0 && (
-                                <div className="flex justify-between text-success">
-                                  <span>Discount</span>
-                                  <span className="font-price">−{formatIDR(tx.discountAmount)}</span>
-                                </div>
-                              )}
-                              {tx.taxAmount > 0 && (
-                                <div className="flex justify-between text-muted-foreground">
-                                  <span>Tax</span>
-                                  <span className="font-price">{formatIDR(tx.taxAmount)}</span>
-                                </div>
-                              )}
-                              {tx.shippingCost > 0 && (
-                                <div className="flex justify-between text-muted-foreground">
-                                  <span>Shipping</span>
-                                  <span className="font-price">{formatIDR(tx.shippingCost)}</span>
-                                </div>
-                              )}
-                              <div className="flex justify-between font-bold pt-3 mt-3 border-t border-border text-base">
-                                <span>Total</span>
-                                <span className="font-price text-primary">{formatIDR(tx.total)}</span>
-                              </div>
-                              
-                              <div className="mt-4 pt-4 border-t border-border space-y-2 text-xs">
-                                <div className="flex justify-between text-muted-foreground">
-                                  <span>Paid ({tx.paymentMethod})</span>
-                                  <span className="font-price">{formatIDR(tx.amountPaid)}</span>
-                                </div>
-                                {tx.changeDue > 0 && (
-                                  <div className="flex justify-between text-muted-foreground font-medium">
-                                    <span>Change</span>
-                                    <span className="font-price">{formatIDR(tx.changeDue)}</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="mt-4 pt-4 border-t border-border">
-                                <Button 
-                                  variant="secondary" 
-                                  className="w-full font-medium"
-                                  onClick={() => window.open(`/receipt/${tx.id}`, '_blank')}
-                                >
-                                  Cetak Struk
-                                </Button>
-                              </div>
-                            </div>
-                            {/* Actions */}
-                            {tx.status === "COMPLETED" && (
-                              <div className="w-40 self-start">
-                                <Button
-                                  variant="destructive"
-                                  onClick={(e) => { e.stopPropagation(); openVoidDialog(tx.id); }}
-                                  disabled={isVoiding === tx.id}
-                                  className="w-full text-xs"
-                                >
-                                  {isVoiding === tx.id ? "Voiding…" : "Void Transaction"}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))
+      <DataTable
+        columns={columns}
+        data={transactions}
+        isLoading={false}
+        emptyMessage="No transactions found."
+        pagination={{
+          page: currentPage,
+          pageSize: pageSize,
+          total: totalCount,
+          onPageChange: (page) => updateFilter("page", String(page))
+        }}
+        expandable={{
+          expandedId,
+          onExpand: (id) => setExpandedId(expandedId === id ? null : id),
+          renderExpanded: (tx) => (
+            <div className="p-6 flex gap-8">
+              {/* Items List */}
+              <div className="flex-1 space-y-3">
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-3 tracking-wider">Order Items</h4>
+                <div className="space-y-2">
+                  {tx.items.map((item) => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <span>
+                        <span className="font-medium">{item.quantity}x</span> {item.productName} <span className="text-muted-foreground text-xs ml-1">({formatIDR(item.unitPrice)})</span>
+                      </span>
+                      <span className="font-price text-muted-foreground">{formatIDR(item.subtotal)}</span>
+                    </div>
+                  ))}
+                </div>
+                {tx.note && (
+                  <div className="mt-5 pt-5 border-t border-border/50">
+                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2 tracking-wider">Notes</h4>
+                    <p className="text-sm italic text-muted-foreground">{tx.note}</p>
+                  </div>
+                )}
+              </div>
+              {/* Financial Summary */}
+              <div className="w-72 bg-background p-5 rounded-2xl border shadow-sm space-y-2 text-sm self-start">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span className="font-price">{formatIDR(tx.subtotal)}</span>
+                </div>
+                {tx.discountAmount > 0 && (
+                  <div className="flex justify-between text-success">
+                    <span>Discount</span>
+                    <span className="font-price">−{formatIDR(tx.discountAmount)}</span>
+                  </div>
+                )}
+                {tx.taxAmount > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Tax</span>
+                    <span className="font-price">{formatIDR(tx.taxAmount)}</span>
+                  </div>
+                )}
+                {tx.shippingCost > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Shipping</span>
+                    <span className="font-price">{formatIDR(tx.shippingCost)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold pt-3 mt-3 border-t border-border text-base">
+                  <span>Total</span>
+                  <span className="font-price text-primary">{formatIDR(tx.total)}</span>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-border space-y-2 text-xs">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Paid ({tx.paymentMethod})</span>
+                    <span className="font-price">{formatIDR(tx.amountPaid)}</span>
+                  </div>
+                  {tx.changeDue > 0 && (
+                    <div className="flex justify-between text-muted-foreground font-medium">
+                      <span>Change</span>
+                      <span className="font-price">{formatIDR(tx.changeDue)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Button 
+                    variant="secondary" 
+                    className="w-full font-medium"
+                    onClick={() => window.open(`/receipt/${tx.id}`, '_blank')}
+                  >
+                    Cetak Struk
+                  </Button>
+                </div>
+              </div>
+              {/* Actions */}
+              {tx.status === "COMPLETED" && (
+                <div className="w-40 self-start">
+                  <Button
+                    variant="destructive"
+                    onClick={(e) => { e.stopPropagation(); openVoidDialog(tx.id); }}
+                    disabled={isVoiding === tx.id}
+                    className="w-full text-xs"
+                  >
+                    {isVoiding === tx.id ? "Voiding…" : "Void Transaction"}
+                  </Button>
+                </div>
               )}
-            </TableBody>
-          </Table>
-        </div>
-        
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20">
-            <span className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage === 1}
-                onClick={() => updateFilter("page", String(currentPage - 1))}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage === totalPages}
-                onClick={() => updateFilter("page", String(currentPage + 1))}
-              >
-                Next
-              </Button>
             </div>
-          </div>
-        )}
-      </div>
+          )
+        }}
+      />
 
       <Dialog open={voidDialogOpen} onOpenChange={setVoidDialogOpen}>
         <DialogContent>

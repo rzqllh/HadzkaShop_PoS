@@ -6,14 +6,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -187,6 +180,59 @@ export function ProductsClient() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.sku.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const columns: Column<any>[] = [
+    { header: "No", className: "w-[50px] text-center", cell: (_, idx) => <span className="font-medium text-center block">{idx + 1}</span> },
+    { header: "SKU", className: "font-mono text-xs text-center", accessorKey: "sku" },
+    { header: "Nama Produk", className: "font-medium", accessorKey: "name" },
+    { header: "Kategori", cell: (product) => product.category?.name || "-" },
+    { 
+      header: "Harga", 
+      className: "text-right font-price", 
+      cell: (product) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(product.price)) 
+    },
+    { 
+      header: "Stok", 
+      className: "text-center", 
+      cell: (product) => (
+        <div className="flex justify-center">
+          <Badge variant={product.stock <= (product.lowStockThreshold || 0) ? "destructive" : "secondary"}>
+            {product.stock}
+          </Badge>
+        </div>
+      ) 
+    },
+    { 
+      header: "Aksi", 
+      className: "w-[180px] text-center whitespace-nowrap", 
+      cell: (product) => (
+        <div className="flex justify-center space-x-2">
+          <Button 
+            variant="outline" size="sm" 
+            onClick={() => openAdjustDialog(product)}
+            aria-label={`Sesuaikan Stok ${product.name}`} title="Sesuaikan Stok"
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+          </Button>
+          <Button 
+            variant="outline" size="sm" 
+            onClick={() => handleEdit(product)}
+            aria-label={`Ubah ${product.name}`} title="Ubah Produk"
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button 
+            variant="outline" size="sm" 
+            className="text-destructive hover:bg-destructive/10"
+            onClick={() => handleDelete(product.id)}
+            aria-label={`Hapus ${product.name}`} title="Hapus Produk"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      ) 
+    }
+  ];
 
   return (
     <div className="space-y-4">
@@ -397,81 +443,12 @@ export function ProductsClient() {
         </Dialog>
       </div>
 
-      <div className="border rounded-md bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px] text-center">No</TableHead>
-              <TableHead className="text-center">SKU</TableHead>
-              <TableHead className="text-center">Nama Produk</TableHead>
-              <TableHead className="text-center">Kategori</TableHead>
-              <TableHead className="text-center">Harga</TableHead>
-              <TableHead className="text-center">Stok</TableHead>
-              <TableHead className="w-[180px] text-center">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoadingProducts ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">Memuat produk...</TableCell>
-              </TableRow>
-            ) : filteredProducts?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Tidak ada produk ditemukan.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredProducts?.map((product, index) => (
-                <TableRow key={product.id} className="even:bg-muted/30">
-                  <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                  <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.category?.name || "-"}</TableCell>
-                  <TableCell className="text-right font-price">
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(product.price))}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={product.stock <= (product.lowStockThreshold || 0) ? "destructive" : "secondary"}>
-                      {product.stock}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center space-x-2 whitespace-nowrap">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => openAdjustDialog(product)}
-                      aria-label={`Sesuaikan Stok ${product.name}`}
-                      title="Sesuaikan Stok"
-                    >
-                      <ArrowRightLeft className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleEdit(product)}
-                      aria-label={`Ubah ${product.name}`}
-                      title="Ubah Produk"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDelete(product.id)}
-                      aria-label={`Hapus ${product.name}`}
-                      title="Hapus Produk"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={filteredProducts || []} 
+        isLoading={isLoadingProducts} 
+        emptyMessage="Tidak ada produk ditemukan." 
+      />
     </div>
   );
 }

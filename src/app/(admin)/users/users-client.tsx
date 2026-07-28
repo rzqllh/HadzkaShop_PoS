@@ -7,14 +7,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -159,6 +152,56 @@ export function UsersClient() {
     setIsOpen(true);
   };
 
+  const columns: Column<any>[] = [
+    { 
+      header: "No", 
+      className: "w-[50px] text-center", 
+      cell: (_, idx) => <span className="font-medium text-center block">{idx + 1}</span> 
+    },
+    { header: "Nama", className: "font-medium", accessorKey: "name" },
+    { header: "Email", accessorKey: "email" },
+    { 
+      header: "Role", 
+      className: "text-center", 
+      cell: (user) => (
+        <div className="flex justify-center">
+          <Badge variant={user.role === "OWNER" ? "default" : "secondary"}>
+            {user.role === "OWNER" ? "Owner" : "Kasir"}
+          </Badge>
+        </div>
+      ) 
+    },
+    { 
+      header: "Aksi", 
+      className: "w-[180px] text-center", 
+      cell: (user) => (
+        <div className="flex justify-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleEdit(user)}
+            aria-label={`Ubah ${user.name}`}
+          >
+            <Pencil className="w-4 h-4 mr-1" />
+            <span className="hidden sm:inline">Ubah</span>
+          </Button>
+          {user.email !== sessionUser?.email && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => handleDelete(user.id)}
+              aria-label={`Nonaktifkan ${user.name}`}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Hapus</span>
+            </Button>
+          )}
+        </div>
+      ) 
+    }
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -256,68 +299,12 @@ export function UsersClient() {
         </Dialog>
       </div>
 
-      <div className="border rounded-md bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px] text-center">No</TableHead>
-              <TableHead className="text-center">Nama</TableHead>
-              <TableHead className="text-center">Email</TableHead>
-              <TableHead className="text-center">Role</TableHead>
-              <TableHead className="w-[180px] text-center">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">Memuat pengguna...</TableCell>
-              </TableRow>
-            ) : users?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  Belum ada pengguna lainnya.
-                </TableCell>
-              </TableRow>
-            ) : (
-              users?.map((user, index) => (
-                <TableRow key={user.id} className="even:bg-muted/30">
-                  <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={user.role === "OWNER" ? "default" : "secondary"}>
-                      {user.role === "OWNER" ? "Owner" : "Kasir"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleEdit(user)}
-                      aria-label={`Ubah ${user.name}`}
-                    >
-                      <Pencil className="w-4 h-4 mr-1" />
-                      <span className="hidden sm:inline">Ubah</span>
-                    </Button>
-                    {user.email !== sessionUser?.email && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(user.id)}
-                        aria-label={`Nonaktifkan ${user.name}`}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        <span className="hidden sm:inline">Hapus</span>
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={users || []} 
+        isLoading={isLoading} 
+        emptyMessage="Belum ada pengguna lainnya." 
+      />
     </div>
   );
 }

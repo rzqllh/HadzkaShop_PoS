@@ -106,8 +106,8 @@ export function AdminNav() {
             if (isMinimized) {
               return (
                 <Tooltip key={item.href}>
-                  <TooltipTrigger>
-                    <div className="relative">{navLink}</div>
+                  <TooltipTrigger render={<div className="relative" />}>
+                    {navLink}
                   </TooltipTrigger>
                   <TooltipContent side="right" className="flex items-center gap-2">
                     {item.label}
@@ -128,7 +128,7 @@ export function AdminNav() {
         <div className="p-3 border-t border-sidebar-border flex flex-col gap-2 overflow-hidden">
           {isMinimized ? (
             <Tooltip>
-              <TooltipTrigger>
+              <TooltipTrigger render={<div />}>
                 <Link
                   href="/pos"
                   className="flex items-center justify-center gap-3 px-0 py-3 rounded-md text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors touch-target"
@@ -150,7 +150,7 @@ export function AdminNav() {
 
           {isMinimized ? (
             <Tooltip>
-              <TooltipTrigger>
+              <TooltipTrigger render={<div />}>
                 <Button
                   variant="ghost"
                   onClick={async () => {

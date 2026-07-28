@@ -6,14 +6,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -89,7 +82,39 @@ export function CategoriesClient() {
     setIsOpen(true);
   };
 
-  if (isLoading) return <div>Memuat kategori...</div>;
+  const columns: Column<any>[] = [
+    { 
+      header: "No", 
+      className: "w-[50px] text-center", 
+      cell: (_, idx) => <span className="font-medium text-center block">{idx + 1}</span> 
+    },
+    { header: "Nama Kategori", className: "font-medium", accessorKey: "name" },
+    { 
+      header: "Aksi", 
+      className: "w-[150px] text-center", 
+      cell: (cat) => (
+        <div className="flex justify-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => handleEdit(cat.id, cat.name)}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => handleDelete(cat.id)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      ) 
+    }
+  ];
+
+  if (isLoading) return <div className="p-4">Memuat kategori...</div>;
 
   return (
     <div className="space-y-4">
@@ -133,49 +158,12 @@ export function CategoriesClient() {
         </Dialog>
       </div>
 
-      <div className="border rounded-md bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px] text-center">No</TableHead>
-              <TableHead className="text-center">Nama Kategori</TableHead>
-              <TableHead className="w-[150px] text-center">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                  Belum ada kategori.
-                </TableCell>
-              </TableRow>
-            )}
-            {categories?.map((cat, index) => (
-              <TableRow key={cat.id} className="even:bg-muted/30">
-                <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                <TableCell className="font-medium">{cat.name}</TableCell>
-                <TableCell className="text-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleEdit(cat.id, cat.name)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(cat.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={categories || []} 
+        isLoading={isLoading} 
+        emptyMessage="Belum ada kategori." 
+      />
     </div>
   );
 }
