@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Hadzka POS semantic tokens */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --radius-sm: calc(var(--radius) * 0.75);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.25);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ── Light mode (60-30-10 Apple HIG) ─────────────────────────────── */
+:root {
+  --radius: 0.5rem; /* 8px - Dense operate UI */
+
+  /* 60% Dominant (Neutral Backgrounds) */
+  --background: #FFFFFF;
+  --foreground: #111827;
+
+  /* 30% Secondary (Surfaces) */
+  --card: #F9FAFB;
+  --secondary: #F3F4F6;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  
+  --secondary: #F4F4F5;
+  --secondary-foreground: #09090B;
+  --muted: #F4F4F5;
+  --muted-foreground: #71717A;
+  
+  --border: #E5E7EB;
+  --input: #E2E8F0;
+
+  /* 10% Accent (Pink #DB2777 strictly) */
+  --primary: #059669;
+  --primary-foreground: #FFFFFF;
+  --accent: #10B981;
+  --ring: #059669;
+  --accent-foreground: #FFFFFF;
+
+  /* Semantic */
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --success: #16A34A;
+  --success-foreground: #FFFFFF;
+  --warning: #D97706;
+  --warning-foreground: #FFFFFF;
+
+  /* Charts */
+  --chart-1: #DB2777;
+  --chart-2: #BE185D;
+  --chart-3: #9D174D;
+  --chart-4: #831843;
+  --chart-5: #500724;
+
+  /* Sidebar (web approximation, not official Apple Liquid Glass) */
+  --sidebar: rgba(249, 250, 251, 0.85);
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #059669;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(5, 150, 105, 0.08);
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: rgba(15, 23, 42, 0.1);
+  --sidebar-ring: #059669;
+}
+
+/* ── Dark mode (60-30-10 Apple HIG Night) ─────────────────── */
+.dark {
+  /* 60% Dominant */
+  --background: #020617;
+  --foreground: #ECFDF5;
+
+  /* 30% Secondary */
+  --card: #052E2B;
+  --card-foreground: #ECFDF5;
+  --popover: #0F172A;
+  --popover-foreground: #FAFAFA;
+
+  --secondary: #064E3B;
+  --secondary-foreground: #FAFAFA;
+  --muted: #064E3B;
+  --muted-foreground: #6EE7B7;
+
+  --border: #064E3B;
+  --input: #064E3B;
+
+  /* 10% Accent */
+  --primary: #10B981;
+  --primary-foreground: #FFFFFF;
+  --accent: #34D399;
+  --accent-foreground: #FFFFFF;
+  --ring: #10B981;
+
+  /* Semantic */
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --success: #22C55E;
+  --success-foreground: #000000;
+  --warning: #F59E0B;
+  --warning-foreground: #000000;
+
+  /* Sidebar (web approximation, not official Apple Liquid Glass) */
+  --sidebar: rgba(9, 9, 11, 0.7);
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: #DB2777;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(219, 39, 119, 0.2);
+  --sidebar-accent-foreground: #FAFAFA;
+  --sidebar-border: rgba(250, 250, 250, 0.1);
+  --sidebar-ring: #DB2777;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply antialiased bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* All currency amounts use monospace with tabular nums */
+  .font-price {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── POS utility classes ───────────────────────────────── */
+@layer utilities {
+  .bg-success   { background-color: var(--success); }
+  .text-success { color: var(--success); }
+  .border-success { border-color: var(--success); }
+  .bg-warning   { background-color: var(--warning); }
+  .text-warning { color: var(--warning); }
+  .border-warning { border-color: var(--warning); }
+
+  /* WCAG 2.5.5 minimum touch target */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Payment button minimum height */
+  .btn-payment {
+    min-height: 56px;
+    @apply text-base font-medium;
+  }
+}
