@@ -52,12 +52,24 @@ function RegisterForm() {
     toast.info("Fitur registrasi sosial belum tersedia.");
   };
 
-  return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-6 lg:p-8 selection:bg-blue-500/30">
-      <div className="w-full max-w-[1200px] min-h-[700px] bg-white rounded-[40px] flex p-4 shadow-2xl relative overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 selection:bg-primary/30">
+      {/* Blurred Background Image */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <Image
+          src={bgImage}
+          alt="Background"
+          fill
+          className="object-cover scale-105"
+          priority
+        />
+        <div className="absolute inset-0 bg-background/20 dark:bg-background/40 backdrop-blur-2xl backdrop-saturate-150" />
+      </div>
+
+      <div className="w-full max-w-[1200px] min-h-[700px] rounded-[40px] flex p-4 shadow-2xl relative z-10 
+        bg-white/40 dark:bg-black/40 backdrop-blur-2xl border border-white/50 dark:border-white/10 overflow-hidden">
         
         {/* Left Image Area (Hidden on Mobile) */}
-        <div className="hidden lg:block relative w-1/2 h-full min-h-[660px] rounded-[32px] overflow-hidden bg-zinc-900">
+        <div className="hidden lg:block relative w-1/2 h-full min-h-[660px] rounded-[32px] overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
           <motion.div
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -95,21 +107,21 @@ function RegisterForm() {
         </div>
 
         {/* Right Form Area */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-12 text-zinc-950">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-12 text-foreground">
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
             className="w-full max-w-[400px] space-y-8 flex flex-col items-center"
           >
             
             {/* Header */}
             <div className="flex flex-col items-center text-center space-y-3 w-full">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-2">
+              <div className="w-12 h-12 bg-primary/20 text-primary rounded-xl flex items-center justify-center mb-2 shadow-inner border border-white/20 dark:border-white/10 backdrop-blur-md">
                 <Storefront size={28} weight="duotone" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-950">Create an Account</h1>
-              <p className="text-sm font-medium text-zinc-500">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Create an Account</h1>
+              <p className="text-sm font-medium text-muted-foreground">
                 Already have an account? <Link href="/login" className="text-primary font-semibold hover:underline">Log in</Link>
               </p>
             </div>
@@ -133,7 +145,7 @@ function RegisterForm() {
                     type="text"
                     required
                     placeholder="Full Name"
-                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-sm"
+                    className="w-full h-12 px-4 rounded-xl bg-background/50 dark:bg-background/30 backdrop-blur-md border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all font-medium text-sm"
                   />
                 </div>
                 <div className="relative">
@@ -144,7 +156,7 @@ function RegisterForm() {
                     autoComplete="email"
                     required
                     placeholder="Email address"
-                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-sm"
+                    className="w-full h-12 px-4 rounded-xl bg-background/50 dark:bg-background/30 backdrop-blur-md border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all font-medium text-sm"
                   />
                 </div>
                 <div className="relative">
@@ -155,7 +167,7 @@ function RegisterForm() {
                     autoComplete="new-password"
                     required
                     placeholder="Input Password"
-                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-sm"
+                    className="w-full h-12 px-4 rounded-xl bg-background/50 dark:bg-background/30 backdrop-blur-md border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all font-medium text-sm"
                   />
                 </div>
               </div>
@@ -164,13 +176,13 @@ function RegisterForm() {
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative flex items-center">
                     <input type="checkbox" name="terms" className="peer sr-only" />
-                    <div className="w-5 h-5 rounded border border-zinc-300 bg-zinc-50 peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <div className="w-5 h-5 rounded border border-border bg-background/50 backdrop-blur-sm peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5 text-primary-foreground opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-zinc-600 group-hover:text-zinc-900 transition-colors">
+                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     I agree to the <a href="#" className="text-primary font-semibold hover:underline">Terms and Privacy policy</a>
                   </span>
                 </label>
@@ -185,17 +197,17 @@ function RegisterForm() {
               </button>
             </form>
 
-            <div className="w-full flex items-center gap-4 py-2">
-              <div className="flex-1 h-px bg-zinc-200"></div>
-              <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Or</span>
-              <div className="flex-1 h-px bg-zinc-200"></div>
+            <div className="w-full flex items-center gap-4 py-2 opacity-60">
+              <div className="flex-1 h-px bg-border"></div>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Or</span>
+              <div className="flex-1 h-px bg-border"></div>
             </div>
 
             <div className="w-full space-y-3">
               <button 
                 type="button"
                 onClick={handleSocialClick}
-                className="w-full h-12 rounded-xl bg-white border border-zinc-200 text-zinc-700 font-medium hover:bg-zinc-50 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                className="w-full h-12 rounded-xl bg-background/40 dark:bg-background/20 backdrop-blur-md border border-border text-foreground font-medium hover:bg-background/60 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
               >
                 <GoogleLogo weight="bold" className="text-xl text-red-500" />
                 Sign up with Google
@@ -203,9 +215,9 @@ function RegisterForm() {
               <button 
                 type="button"
                 onClick={handleSocialClick}
-                className="w-full h-12 rounded-xl bg-white border border-zinc-200 text-zinc-700 font-medium hover:bg-zinc-50 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                className="w-full h-12 rounded-xl bg-background/40 dark:bg-background/20 backdrop-blur-md border border-border text-foreground font-medium hover:bg-background/60 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
               >
-                <AppleLogo weight="fill" className="text-xl text-zinc-950" />
+                <AppleLogo weight="fill" className="text-xl text-foreground" />
                 Sign up with Apple
               </button>
             </div>
