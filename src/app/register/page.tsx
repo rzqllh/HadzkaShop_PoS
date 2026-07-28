@@ -7,7 +7,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/client";
 import { AuthContainer } from "@/components/auth/AuthContainer";
-import { GoogleLogoSVG, AppleLogoSVG } from "@/components/ui/social-icons";
+import { FcGoogle } from "react-icons/fc";
+import { FaApple } from "react-icons/fa";
 
 function RegisterForm() {
   const router = useRouter();
@@ -145,7 +146,7 @@ function RegisterForm() {
             className="flex-1 h-12 rounded-xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/10 hover:bg-white/80 dark:hover:bg-white/10 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
             aria-label="Register with Google"
           >
-            <GoogleLogoSVG className="w-6 h-6" />
+            <FcGoogle className="w-6 h-6" />
           </button>
           <button 
             type="button"
@@ -153,7 +154,7 @@ function RegisterForm() {
             className="flex-1 h-12 rounded-xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/10 hover:bg-white/80 dark:hover:bg-white/10 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm text-zinc-800 dark:text-zinc-200"
             aria-label="Register with Apple"
           >
-            <AppleLogoSVG className="w-6 h-6" />
+            <FaApple className="w-6 h-6 text-black dark:text-white" />
           </button>
         </div>
       </div>

@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { toast } from "sonner";
 import { AuthContainer } from "@/components/auth/AuthContainer";
-import { GoogleLogoSVG, AppleLogoSVG } from "@/components/ui/social-icons";
+import { FcGoogle } from "react-icons/fc";
+import { FaApple } from "react-icons/fa";
 
 function LoginForm() {
   const router = useRouter();
@@ -125,7 +126,7 @@ function LoginForm() {
             onClick={handleSocialClick}
             className="w-full h-12 rounded-xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-200 font-medium hover:bg-white/80 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
           >
-            <GoogleLogoSVG className="w-5 h-5" />
+            <FcGoogle className="w-5 h-5" />
             Sign in with Google
           </button>
           <button 
@@ -133,7 +134,7 @@ function LoginForm() {
             onClick={handleSocialClick}
             className="w-full h-12 rounded-xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-200 font-medium hover:bg-white/80 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
           >
-            <AppleLogoSVG className="w-5 h-5" />
+            <FaApple className="w-5 h-5 text-black dark:text-white" />
             Sign in with Apple
           </button>
         </div>
