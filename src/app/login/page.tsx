@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/client";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AuthContainer } from "@/components/auth/AuthContainer";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";

@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { createClient } from "@/lib/client";
 import { AuthContainer } from "@/components/auth/AuthContainer";
 import { FcGoogle } from "react-icons/fc";

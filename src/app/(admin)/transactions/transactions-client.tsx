@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable, Column } from "@/components/ui/data-table";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 type Transaction = {
   id: string;
