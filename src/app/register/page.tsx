@@ -9,24 +9,13 @@ import { Storefront, GoogleLogo, AppleLogo } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/client";
 
-const bgImages = [
-  "/images/login_bg_3_1785144678697.png",
-  "/images/login_bg_1_1785144659781.png",
-  "/images/login_bg_2_1785144669507.png",
-];
+const bgImage = "/images/pos_login_bg_emerald.png";
 
 function RegisterForm() {
   const router = useRouter();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [bgIndex, setBgIndex] = useState(0);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % bgImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -69,25 +58,21 @@ function RegisterForm() {
         
         {/* Left Image Area (Hidden on Mobile) */}
         <div className="hidden lg:block relative w-1/2 h-full min-h-[660px] rounded-[32px] overflow-hidden bg-zinc-900">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={bgIndex}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
-              className="absolute inset-0"
-            >
-              <Image
-                src={bgImages[bgIndex]}
-                alt="POS Background"
-                fill
-                className="object-cover"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.5, ease: "easeInOut" }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={bgImage}
+              alt="POS Background"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
+          </motion.div>
           
           <div className="absolute bottom-12 left-10 z-10 text-white space-y-2 pr-8">
             <motion.h2 
@@ -120,12 +105,12 @@ function RegisterForm() {
             
             {/* Header */}
             <div className="flex flex-col items-center text-center space-y-3 w-full">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-2">
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-2">
                 <Storefront size={28} weight="duotone" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-zinc-950">Create an Account</h1>
               <p className="text-sm font-medium text-zinc-500">
-                Already have an account? <Link href="/login" className="text-blue-600 hover:underline">Log in</Link>
+                Already have an account? <Link href="/login" className="text-primary font-semibold hover:underline">Log in</Link>
               </p>
             </div>
 
@@ -148,7 +133,7 @@ function RegisterForm() {
                     type="text"
                     required
                     placeholder="Full Name"
-                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium text-sm"
+                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-sm"
                   />
                 </div>
                 <div className="relative">
@@ -159,7 +144,7 @@ function RegisterForm() {
                     autoComplete="email"
                     required
                     placeholder="Email address"
-                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium text-sm"
+                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-sm"
                   />
                 </div>
                 <div className="relative">
@@ -170,7 +155,7 @@ function RegisterForm() {
                     autoComplete="new-password"
                     required
                     placeholder="Input Password"
-                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium text-sm"
+                    className="w-full h-12 px-4 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-sm"
                   />
                 </div>
               </div>
@@ -179,14 +164,14 @@ function RegisterForm() {
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative flex items-center">
                     <input type="checkbox" name="terms" className="peer sr-only" />
-                    <div className="w-5 h-5 rounded border border-zinc-300 bg-zinc-50 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-colors flex items-center justify-center">
+                    <div className="w-5 h-5 rounded border border-zinc-300 bg-zinc-50 peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
                       <svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                   </div>
                   <span className="text-sm font-medium text-zinc-600 group-hover:text-zinc-900 transition-colors">
-                    I agree to the <a href="#" className="text-blue-600 hover:underline">Terms and Privacy policy</a>
+                    I agree to the <a href="#" className="text-primary font-semibold hover:underline">Terms and Privacy policy</a>
                   </span>
                 </label>
               </div>
@@ -194,7 +179,7 @@ function RegisterForm() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 rounded-xl bg-zinc-950 text-white font-medium shadow-sm hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Creating account..." : "Create Account"}
               </button>
