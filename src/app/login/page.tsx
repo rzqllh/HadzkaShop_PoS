@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/client";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
-import { Storefront, GoogleLogo, AppleLogo } from "@phosphor-icons/react";
 import { toast } from "sonner";
-
-const bgImage = "/images/pos_login_bg_emerald.png";
+import { AuthContainer } from "@/components/auth/AuthContainer";
+import { GoogleLogoSVG, AppleLogoSVG } from "@/components/ui/social-icons";
 
 function LoginForm() {
   const router = useRouter();
@@ -18,7 +16,6 @@ function LoginForm() {
   const errorParam = searchParams.get("error");
   const [errorMsg, setErrorMsg] = useState(errorParam);
   const [isLoading, setIsLoading] = useState(false);
-
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,171 +43,111 @@ function LoginForm() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 selection:bg-primary/30">
-      {/* Blurred Background Image */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <Image
-          src={bgImage}
-          alt="Background"
-          fill
-          className="object-cover scale-105"
-          priority
-        />
-        <div className="absolute inset-0 bg-background/20 dark:bg-background/40 backdrop-blur-2xl backdrop-saturate-150" />
-      </div>
+    <AuthContainer
+      title="Welcome Back"
+      subtitle="Sign in to your account to continue"
+    >
+      <div className="w-full">
+        <AnimatePresence mode="wait">
+          {errorMsg && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="w-full rounded-2xl px-4 py-3 text-sm font-medium bg-red-50 text-red-600 border border-red-100 text-center mb-6"
+            >
+              {errorMsg === "SessionRequired" ? "Silakan login untuk melanjutkan." : errorMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <div className="w-full max-w-[1200px] min-h-[700px] rounded-[40px] flex p-4 shadow-2xl relative z-10 
-        bg-white/40 dark:bg-black/40 backdrop-blur-2xl border border-white/50 dark:border-white/10 overflow-hidden">
-        
-        {/* Left Image Area (Hidden on Mobile) */}
-        <div className="hidden lg:block relative w-1/2 h-full min-h-[660px] rounded-[32px] overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
-          <motion.div
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            <Image
-              src={bgImage}
-              alt="POS Background"
-              fill
-              className="object-cover"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
-          </motion.div>
-          
-          <div className="absolute bottom-12 left-10 z-10 text-white space-y-2 pr-8">
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-3xl font-bold tracking-tight text-white"
-            >
-              Hadzka POS
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.8 }}
-              className="text-base text-white/80 max-w-sm"
-            >
-              Sistem point of sale modern untuk mengelola bisnis Anda dengan lebih efisien dan elegan.
-            </motion.p>
+        <form onSubmit={handleSubmit} className="w-full space-y-5">
+          <div className="space-y-4">
+            <div className="relative">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="Email address"
+                className="w-full h-12 px-4 rounded-xl bg-white/70 dark:bg-black/50 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all font-medium text-sm"
+              />
+            </div>
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                placeholder="Password"
+                className="w-full h-12 px-4 rounded-xl bg-white/70 dark:bg-black/50 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all font-medium text-sm"
+              />
+            </div>
           </div>
+
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="relative flex items-center">
+                <input type="checkbox" className="peer sr-only" />
+                <div className="w-5 h-5 rounded border border-black/10 dark:border-white/10 bg-white/50 dark:bg-black/50 backdrop-blur-sm peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-primary-foreground opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">Remember me</span>
+            </label>
+            <Link href="/forgot-password" className="text-sm font-semibold text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Signing in..." : "Log In"}
+          </button>
+        </form>
+
+        <div className="w-full flex items-center gap-4 py-6 opacity-60">
+          <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-700"></div>
+          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Or</span>
+          <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-700"></div>
         </div>
 
-        {/* Right Form Area */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-12 text-foreground">
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            className="w-full max-w-[400px] space-y-8 flex flex-col items-center"
+        <div className="w-full space-y-3">
+          <button 
+            type="button"
+            onClick={handleSocialClick}
+            className="w-full h-12 rounded-xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-200 font-medium hover:bg-white/80 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
           >
-            
-            {/* Header */}
-            <div className="flex flex-col items-center text-center space-y-3 w-full">
-              <div className="w-12 h-12 bg-primary/20 text-primary rounded-xl flex items-center justify-center mb-2 shadow-inner border border-white/20 dark:border-white/10 backdrop-blur-md">
-                <Storefront size={28} weight="duotone" />
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Log In to POS</h1>
-              <p className="text-sm font-medium text-muted-foreground">
-                Don&apos;t have an account? <Link href="/register" className="text-primary font-semibold hover:underline">Create an account</Link>
-              </p>
-            </div>
+            <GoogleLogoSVG className="w-5 h-5" />
+            Sign in with Google
+          </button>
+          <button 
+            type="button"
+            onClick={handleSocialClick}
+            className="w-full h-12 rounded-xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/10 text-zinc-800 dark:text-zinc-200 font-medium hover:bg-white/80 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
+          >
+            <AppleLogoSVG className="w-5 h-5" />
+            Sign in with Apple
+          </button>
+        </div>
 
-            {errorMsg && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="w-full rounded-2xl px-4 py-3 text-sm font-medium bg-red-50 text-red-600 border border-red-100 text-center"
-              >
-                {errorMsg === "SessionRequired" ? "Silakan login untuk melanjutkan." : errorMsg}
-              </motion.div>
-            )}
-
-            <form onSubmit={handleSubmit} className="w-full space-y-5">
-              <div className="space-y-4">
-                <div className="relative">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="Email address"
-                    className="w-full h-12 px-4 rounded-xl bg-background/50 dark:bg-background/30 backdrop-blur-md border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all font-medium text-sm"
-                  />
-                </div>
-                <div className="relative">
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    placeholder="Password"
-                    className="w-full h-12 px-4 rounded-xl bg-background/50 dark:bg-background/30 backdrop-blur-md border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all font-medium text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <div className="relative flex items-center">
-                    <input type="checkbox" className="peer sr-only" />
-                    <div className="w-5 h-5 rounded border border-border bg-background/50 backdrop-blur-sm peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-primary-foreground opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Remember me</span>
-                </label>
-                <Link href="/forgot-password" className="text-sm font-semibold text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isLoading ? "Signing in..." : "Log In"}
-              </button>
-            </form>
-
-            <div className="w-full flex items-center gap-4 py-2 opacity-60">
-              <div className="flex-1 h-px bg-border"></div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Or</span>
-              <div className="flex-1 h-px bg-border"></div>
-            </div>
-
-            <div className="w-full space-y-3">
-              <button 
-                type="button"
-                onClick={handleSocialClick}
-                className="w-full h-12 rounded-xl bg-background/40 dark:bg-background/20 backdrop-blur-md border border-border text-foreground font-medium hover:bg-background/60 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
-              >
-                <GoogleLogo weight="bold" className="text-xl text-red-500" />
-                Sign in with Google
-              </button>
-              <button 
-                type="button"
-                onClick={handleSocialClick}
-                className="w-full h-12 rounded-xl bg-background/40 dark:bg-background/20 backdrop-blur-md border border-border text-foreground font-medium hover:bg-background/60 transition-all flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm"
-              >
-                <AppleLogo weight="fill" className="text-xl text-foreground" />
-                Sign in with Apple
-              </button>
-            </div>
-            
-          </motion.div>
+        <div className="mt-8 text-center">
+          <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-primary font-semibold hover:underline">
+              Create an account
+            </Link>
+          </p>
         </div>
       </div>
-    </div>
+    </AuthContainer>
   );
 }
 
