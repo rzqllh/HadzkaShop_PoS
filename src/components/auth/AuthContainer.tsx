@@ -8,7 +8,7 @@ import { Storefront } from "@phosphor-icons/react";
 interface AuthContainerProps {
   children: React.ReactNode;
   title: string;
-  subtitle: string;
+  subtitle: React.ReactNode;
 }
 
 export function AuthContainer({ children, title, subtitle }: AuthContainerProps) {
