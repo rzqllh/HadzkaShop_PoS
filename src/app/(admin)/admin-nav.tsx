@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { createClient } from "@/lib/client";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import {
   CaretLeft,
   CaretRight,
   ClipboardText,
+  Moon,
+  Sun,
 } from "@phosphor-icons/react";
 
 const navItems = [
@@ -48,7 +51,13 @@ export function AdminNav() {
     refetchInterval: 30000, // Refetch every 30s
   });
 
+  const { theme, setTheme } = useTheme();
   const [isMinimized, setIsMinimized] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <TooltipProvider delay={0}>
@@ -69,9 +78,10 @@ export function AdminNav() {
             variant="ghost" 
             size="icon" 
             onClick={() => setIsMinimized(!isMinimized)}
-            className={`flex-shrink-0 ${isMinimized ? "mx-auto" : ""}`}
+            className={`flex-shrink-0 ${isMinimized ? "mx-auto w-12 h-12 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20" : ""}`}
+            title="Toggle Sidebar"
           >
-            {isMinimized ? <CaretRight size={20} /> : <CaretLeft size={20} />}
+            {isMinimized ? <Storefront size={28} weight="duotone" /> : <CaretLeft size={20} />}
           </Button>
         </div>
 
@@ -150,44 +160,44 @@ export function AdminNav() {
           ) : (
             <Link
               href="/pos"
-              className="flex items-center gap-3 px-4 py-3 rounded-md text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors touch-target whitespace-nowrap"
+              className="flex items-center justify-center gap-3 px-4 py-3 rounded-md text-base font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors touch-target whitespace-nowrap"
             >
               <Storefront size={24} weight="duotone" className="flex-shrink-0" />
               Buka Kasir
             </Link>
           )}
 
-          {isMinimized ? (
+          <div className={`grid gap-2 mt-1 ${isMinimized ? "grid-cols-1" : "grid-cols-2"}`}>
             <Tooltip>
               <TooltipTrigger render={<div />}>
                 <Button
-                  variant="ghost"
+                  variant="outline"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="w-full flex items-center justify-center px-0 py-6 rounded-md text-base font-medium text-sidebar-foreground border-border/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors touch-target shadow-sm"
+                >
+                  {mounted && theme === "dark" ? <Sun size={24} weight="duotone" /> : <Moon size={24} weight="duotone" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Ganti Tema</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger render={<div />}>
+                <Button
+                  variant="outline"
                   onClick={async () => {
                     const supabase = createClient();
                     await supabase.auth.signOut();
                     window.location.href = "/login";
                   }}
-                  className="w-full flex items-center justify-center px-0 py-6 rounded-md text-base font-medium text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors touch-target"
+                  className="w-full flex items-center justify-center px-0 py-6 rounded-md text-base font-medium text-destructive border-border/60 hover:bg-destructive/10 hover:text-destructive transition-colors touch-target shadow-sm"
                 >
                   <SignOut size={24} weight="duotone" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">Keluar</TooltipContent>
             </Tooltip>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={async () => {
-                const supabase = createClient();
-                await supabase.auth.signOut();
-                window.location.href = "/login";
-              }}
-              className="w-full flex items-center justify-start gap-3 px-4 py-6 rounded-md text-base font-medium text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors touch-target whitespace-nowrap"
-            >
-              <SignOut size={24} weight="duotone" className="flex-shrink-0" />
-              Keluar
-            </Button>
-          )}
+          </div>
         </div>
       </aside>
     </TooltipProvider>

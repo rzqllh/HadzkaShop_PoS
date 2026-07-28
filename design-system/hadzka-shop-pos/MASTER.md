@@ -7,8 +7,8 @@
 ---
 
 **Project:** Hadzka Shop POS
-**Generated:** 2026-07-24 15:04:45
-**Category:** E-commerce Luxury
+**Generated:** 2026-07-28 15:46:54
+**Category:** B2B Service
 
 ---
 
@@ -18,24 +18,24 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#DB2777` | `--color-primary` |
-| Secondary | `#F472B6` | `--color-secondary` |
-| CTA/Accent | `#CA8A04` | `--color-cta` |
-| Background | `#FDF2F8` | `--color-background` |
-| Text | `#831843` | `--color-text` |
+| Primary | `#0891B2` | `--color-primary` |
+| Secondary | `#22D3EE` | `--color-secondary` |
+| CTA/Accent | `#22C55E` | `--color-cta` |
+| Background | `#ECFEFF` | `--color-background` |
+| Text | `#164E63` | `--color-text` |
 
-**Color Notes:** Romantic pink + elegant gold
+**Color Notes:** Fresh cyan + clean green
 
 ### Typography
 
-- **Heading Font:** Rubik
-- **Body Font:** Nunito Sans
-- **Mood:** ecommerce, clean, shopping, product, retail, conversion
-- **Google Fonts:** [Rubik + Nunito Sans](https://fonts.google.com/share?selection.family=Nunito+Sans:wght@300;400;500;600;700|Rubik:wght@300;400;500;600;700)
+- **Heading Font:** Inter
+- **Body Font:** Inter
+- **Mood:** minimal, clean, swiss, functional, neutral, professional
+- **Google Fonts:** [Inter + Inter](https://fonts.google.com/share?selection.family=Inter:wght@300;400;500;600;700)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 ```
 
 ### Spacing Variables
@@ -68,7 +68,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #CA8A04;
+  background: #22C55E;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -85,8 +85,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #DB2777;
-  border: 2px solid #DB2777;
+  color: #0891B2;
+  border: 2px solid #0891B2;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -99,7 +99,7 @@
 
 ```css
 .card {
-  background: #FDF2F8;
+  background: #ECFEFF;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -125,9 +125,9 @@
 }
 
 .input:focus {
-  border-color: #DB2777;
+  border-color: #0891B2;
   outline: none;
-  box-shadow: 0 0 0 3px #DB277720;
+  box-shadow: 0 0 0 3px #0891B220;
 }
 ```
 
@@ -153,27 +153,29 @@
 
 ## Style Guidelines
 
-**Style:** Liquid Glass
+**Style:** Trust & Authority
 
-**Keywords:** Flowing glass, morphing, smooth transitions, fluid effects, translucent, animated blur, iridescent, chromatic aberration
+**Keywords:** Certificates/badges displayed, expert credentials, case studies with metrics, before/after comparisons, industry recognition, security badges
 
-**Best For:** Premium SaaS, high-end e-commerce, creative platforms, branding experiences, luxury portfolios
+**Best For:** Healthcare/medical landing pages, financial services, enterprise software, premium/luxury products, legal services
 
-**Key Effects:** Morphing elements (SVG/CSS), fluid animations (400-600ms curves), dynamic blur (backdrop-filter), color transitions
+**Key Effects:** Badge hover effects, metric pulse animations, certificate carousel, smooth stat reveal
 
 ### Page Pattern
 
-**Pattern Name:** Feature-Rich Showcase
+**Pattern Name:** Minimal Single Column
 
-- **CTA Placement:** Above fold
-- **Section Order:** Hero > Features > CTA
+- **Conversion Strategy:** Single CTA focus. Large typography. Lots of whitespace. No nav clutter. Mobile-first.
+- **CTA Placement:** Center, large CTA button
+- **Section Order:** 1. Hero headline, 2. Short description, 3. Benefit bullets (3 max), 4. CTA, 5. Footer
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Vibrant & Block-based
-- ❌ Playful colors
+- ❌ Playful design
+- ❌ Hidden credentials
+- ❌ AI purple/pink gradients
 
 ### Additional Forbidden Patterns
 

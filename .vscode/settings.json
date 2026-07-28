@@ -1,4 +1,7 @@
 {
   "css.customData": [],
-  "css.lint.unknownAtRules": "ignore"
+  "css.lint.unknownAtRules": "ignore",
+  "git.ignoredRepositories": [
+    "C:\\Users\\Hafizh Rizqullah\\.gemini\\config\\plugins\\superpowers"
+  ]
 }

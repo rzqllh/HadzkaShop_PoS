@@ -5,9 +5,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { api } from "@/trpc/react";
 import { toast } from "@/lib/toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -78,6 +81,13 @@ export function SettingsForm() {
     updateSettings.mutate(values);
   }
 
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -87,128 +97,184 @@ export function SettingsForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Informasi Dasar</CardTitle>
-        <CardDescription>
-          Data ini akan ditampilkan pada struk pelanggan.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nama Toko</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Hadzka Shop" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Tabs defaultValue="profil" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="profil">Profil Toko</TabsTrigger>
+            <TabsTrigger value="struk">Struk & Transaksi</TabsTrigger>
+            <TabsTrigger value="sistem">Sistem & Web</TabsTrigger>
+          </TabsList>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nomor Telepon</FormLabel>
-                    <FormControl>
-                      <Input placeholder="0812..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="taxRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pajak / PPN (%)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
-                    </FormControl>
-                    <FormDescription>
-                      Set ke 0 jika tidak ada pajak.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="lowStockThreshold"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Batas Stok Menipis</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
-                  </FormControl>
+          <TabsContent value="profil">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profil Toko</CardTitle>
+                <CardDescription>
+                  Informasi dasar toko Anda.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nama Toko</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Hadzka Shop" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nomor Telepon</FormLabel>
+                        <FormControl>
+                          <Input placeholder="0812..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Additional profile fields could go here */}
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Alamat Lengkap</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Alamat toko..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="struk">
+            <Card>
+              <CardHeader>
+                <CardTitle>Struk & Transaksi</CardTitle>
+                <CardDescription>
+                  Pengaturan pajak dan format struk pelanggan.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="taxRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pajak / PPN (%)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.1" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                      </FormControl>
+                      <FormDescription>
+                        Set ke 0 jika tidak ada pajak.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="receiptHeader"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Header Struk</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Pesan di bagian atas struk..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="receiptFooter"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Footer Struk</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Pesan di bagian bawah struk (mis: Terima kasih)..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sistem">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sistem & Web</CardTitle>
+                <CardDescription>
+                  Pengaturan perilaku sistem POS dan tampilan antarmuka (Web).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="lowStockThreshold"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Batas Stok Menipis</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                      </FormControl>
+                      <FormDescription>
+                        Peringatan akan muncul jika stok produk berada di bawah angka ini.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Theme Selector (Client-side only setting) */}
+                <div className="space-y-2">
+                  <FormLabel>Tema Tampilan Web</FormLabel>
+                  <Select value={mounted ? theme : undefined} onValueChange={(val) => { if (val) setTheme(val); }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih Tema" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Terang (Light)</SelectItem>
+                      <SelectItem value="dark">Gelap (Dark)</SelectItem>
+                      <SelectItem value="system">Sistem (Otomatis)</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormDescription>
-                    Peringatan akan muncul jika stok produk berada di bawah angka ini.
+                    Pilih tema warna untuk antarmuka web. Preferensi ini hanya disimpan di browser Anda.
                   </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Alamat Lengkap</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Alamat toko..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="receiptHeader"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Header Struk</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Pesan di bagian atas struk..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="receiptFooter"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Footer Struk</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Pesan di bagian bawah struk (mis: Terima kasih)..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button type="submit" disabled={updateSettings.isPending}>
-              <Save className="mr-2 h-4 w-4" />
-              {updateSettings.isPending ? "Menyimpan..." : "Simpan Pengaturan"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={updateSettings.isPending}>
+            <Save className="mr-2 h-4 w-4" />
+            {updateSettings.isPending ? "Menyimpan..." : "Simpan Pengaturan"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }

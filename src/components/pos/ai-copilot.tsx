@@ -167,11 +167,11 @@ export function AICopilot() {
                           : "bg-muted/50 border border-border text-foreground rounded-2xl rounded-bl-sm"
                       )}
                     >
-                      <div className="whitespace-pre-wrap break-words leading-relaxed w-full">
+                      <div className="break-words leading-relaxed w-full">
                         {m.parts?.map((part: any, index: number) => {
                           if (part.type === 'text') {
                             return (
-                              <div key={index} className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-p:m-0 prose-li:m-0">
+                              <div key={index} className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-normal prose-p:m-0 prose-p:mb-2 last:prose-p:mb-0 prose-pre:p-0 prose-li:m-0">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {part.text}
                                 </ReactMarkdown>
