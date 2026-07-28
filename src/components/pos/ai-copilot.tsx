@@ -18,13 +18,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+const BouncingDots = () => (
+  <div className="flex gap-1 items-center justify-center h-4 px-1">
+    <motion.div className="w-1.5 h-1.5 bg-primary rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0 }} />
+    <motion.div className="w-1.5 h-1.5 bg-primary rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} />
+    <motion.div className="w-1.5 h-1.5 bg-primary rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }} />
+  </div>
+);
+
 export function AICopilot() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState<{label: string, prompt: string, emoji: string}[] | null>(null);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   
-  const { messages, status, sendMessage, setMessages } = useChat({ maxSteps: 5 });
+  const { messages, status, sendMessage, setMessages } = useChat({});
   
   const isLoading = status === 'submitted' || status === 'streaming';
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -163,8 +171,8 @@ export function AICopilot() {
                       className={cn(
                         "flex w-max max-w-[85%] flex-col gap-1.5 px-4 py-2.5 text-sm shadow-sm",
                         m.role === "user"
-                          ? "ml-auto bg-primary text-primary-foreground rounded-2xl rounded-br-sm"
-                          : "bg-muted/50 border border-border text-foreground rounded-2xl rounded-bl-sm"
+                          ? "ml-auto bg-primary rounded-2xl rounded-br-sm"
+                          : "bg-muted/50 border border-border rounded-2xl rounded-bl-sm"
                       )}
                     >
                       <div className="break-words leading-relaxed w-full">
@@ -181,24 +189,34 @@ export function AICopilot() {
                           
                           if (part.type?.startsWith('tool-') || part.type === 'dynamic-tool') {
                             const toolName = part.toolName || (part.type.startsWith('tool-') ? part.type.slice(5) : 'unknown');
-                            const isResult = part.state === 'result';
+                            const isResult = part.state === 'output-available' || part.state === 'output-error';
                             let argsString = '';
                             try {
-                              if (part.args) {
+                              if (part.input) {
+                                argsString = `(${JSON.stringify(part.input)})`;
+                              } else if (part.args) {
                                 argsString = `(${JSON.stringify(part.args)})`;
                               }
                             } catch (e) {}
                             
-                            const message = isResult ? `Selesai: ${toolName}` : `Memproses: ${toolName} ${argsString}...`;
-                            
                             return (
                               <div key={part.toolCallId || index} className="mt-2 p-2 bg-background border border-border/50 rounded-md text-xs font-mono flex flex-col gap-1 text-muted-foreground break-all">
                                 <div className="flex items-center gap-2">
-                                  {!isResult && <Loader2 className="w-3 h-3 animate-spin text-primary flex-shrink-0" />}
+                                  {!isResult && <BouncingDots />}
                                   <span className="font-semibold">{isResult ? `Selesai: ${toolName}` : `Memproses: ${toolName}`}</span>
                                 </div>
                                 {!isResult && argsString && (
                                   <div className="pl-5 opacity-75">{argsString}</div>
+                                )}
+                                {part.state === 'output-available' && part.output && (
+                                  <div className="pl-5 opacity-90 text-primary font-sans mt-1">
+                                    ↳ {typeof part.output === 'string' ? part.output : JSON.stringify(part.output)}
+                                  </div>
+                                )}
+                                {part.state === 'output-error' && part.errorText && (
+                                  <div className="pl-5 opacity-90 text-destructive font-sans mt-1">
+                                    ↳ Error: {part.errorText}
+                                  </div>
                                 )}
                               </div>
                             );
@@ -211,7 +229,7 @@ export function AICopilot() {
                   ))}
                   {isLoading && status !== 'streaming' && (
                     <div className="flex items-center gap-2 text-muted-foreground text-xs p-2 ml-1">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> 
+                      <BouncingDots /> 
                       <span>Berpikir...</span>
                     </div>
                   )}
