@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, X, Send, Sparkles, Loader2, Settings2, Trash2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -117,8 +119,8 @@ export function AICopilot() {
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4 pb-4">
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="space-y-4 p-4 pb-4">
                   {messages.length === 0 && (
                     <div className="flex flex-col items-center justify-center text-center mt-12 space-y-4">
                       <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
@@ -165,10 +167,16 @@ export function AICopilot() {
                           : "bg-muted/50 border border-border text-foreground rounded-2xl rounded-bl-sm"
                       )}
                     >
-                      <div className="whitespace-pre-wrap break-words leading-relaxed">
+                      <div className="whitespace-pre-wrap break-words leading-relaxed w-full">
                         {m.parts?.map((part: any, index: number) => {
                           if (part.type === 'text') {
-                            return <span key={index}>{part.text}</span>;
+                            return (
+                              <div key={index} className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-p:m-0 prose-li:m-0">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {part.text}
+                                </ReactMarkdown>
+                              </div>
+                            );
                           }
                           
                           if (part.type?.startsWith('tool-') || part.type === 'dynamic-tool') {
