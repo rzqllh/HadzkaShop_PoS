@@ -54,6 +54,7 @@ model Shop {
   users          User[]
   categories     Category[]
   products       Product[]
+  customers      Customer[]
   transactions   Transaction[]
   stockMovements StockMovement[]
 }
@@ -114,10 +115,30 @@ model Product {
   @@unique([shopId, sku])
 }
 
+model Customer {
+  id            String        @id @default(uuid())
+  shopId        String
+  name          String
+  phone         String?
+  email         String?
+  address       String?       @db.Text
+  loyaltyPoints Int           @default(0)
+  totalSpent    Decimal       @default(0) @db.Decimal(12, 2)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+
+  @@index([shopId])
+  @@index([shopId, name])
+}
+
 model Transaction {
   id                    String            @id @default(uuid())
   shopId                String
   cashierId             String
+  customerId            String?
   transactionNumber     String            @unique
   status                TransactionStatus @default(PENDING)
   paymentMethod         PaymentMethod
@@ -139,6 +160,7 @@ model Transaction {
 
   shop           Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
   cashier        User              @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  customer       Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items          TransactionItem[]
   stockMovements StockMovement[]
 

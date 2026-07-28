@@ -24,6 +24,7 @@ import {
   Storefront,
   SignOut,
   Users,
+  UserList,
   Clock,
   CaretLeft,
   CaretRight,
@@ -33,6 +34,7 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Ringkasan", icon: ChartLineUp },
   { href: "/transactions", label: "Riwayat Transaksi", icon: Receipt },
+  { href: "/customers", label: "Pelanggan", icon: UserList },
   { href: "/stock-movements", label: "Log Mutasi Stok", icon: ClipboardText },
   { href: "/products", label: "Daftar Produk", icon: Package },
   { href: "/categories", label: "Kategori", icon: ListDashes },

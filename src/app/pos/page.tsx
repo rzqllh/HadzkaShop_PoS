@@ -9,7 +9,7 @@ export default async function POSPage() {
 
   const shopId = session.user.shopId;
 
-  const [shop, products, categories] = await Promise.all([
+  const [shop, products, categories, customers] = await Promise.all([
     prisma.shop.findUnique({
       where: { id: shopId },
       select: { name: true, taxRate: true, currency: true, lowStockThreshold: true },
@@ -22,6 +22,11 @@ export default async function POSPage() {
     prisma.category.findMany({
       where: { shopId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+    prisma.customer.findMany({
+      where: { shopId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, phone: true, loyaltyPoints: true },
     }),
   ]);
 
@@ -36,6 +41,7 @@ export default async function POSPage() {
         costPrice: p.costPrice ? Number(p.costPrice) : null,
       }))}
       categories={categories}
+      customers={customers}
       cashierName={session.user.name ?? "Cashier"}
       cashierRole={session.user.role as string}
     />

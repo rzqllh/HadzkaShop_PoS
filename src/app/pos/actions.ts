@@ -21,6 +21,7 @@ type SubmitTransactionPayload = {
   paymentMethod: "CASH" | "QRIS";
   amountPaid: number;
   note?: string;
+  customerId?: string;
 };
 
 export async function submitTransaction(
@@ -77,6 +78,7 @@ export async function submitTransaction(
         data: {
           shopId,
           cashierId,
+          customerId: payload.customerId || null,
           transactionNumber,
           status: "COMPLETED",
           paymentMethod: payload.paymentMethod,
@@ -117,6 +119,17 @@ export async function submitTransaction(
             previousStock: prevStock,
             newStock: prevStock - item.quantity,
           }
+        });
+      }
+
+      if (payload.customerId) {
+        const earnedPoints = Math.floor(payload.total / 10000);
+        await tx.customer.update({
+          where: { id: payload.customerId },
+          data: {
+            loyaltyPoints: { increment: earnedPoints },
+            totalSpent: { increment: payload.total },
+          },
         });
       }
 

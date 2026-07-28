@@ -7,6 +7,7 @@ import { MagnifyingGlass, ShoppingCart, Trash, Money, QrCode, Bell } from "@phos
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProductCard } from "@/components/pos/product-card";
 import { CartLineItem } from "@/components/pos/cart-line-item";
 
@@ -31,10 +32,18 @@ type Shop = {
   lowStockThreshold: number;
 };
 
+type Customer = {
+  id: string;
+  name: string;
+  phone: string | null;
+  loyaltyPoints: number;
+};
+
 type Props = {
   shop: Shop;
   products: Product[];
   categories: Category[];
+  customers: Customer[];
   cashierName: string;
   cashierRole: string;
 };
@@ -51,7 +60,7 @@ function formatIDR(n: number) {
 type PaymentMethod = "CASH" | "QRIS";
 
 // ── POS Terminal ───────────────────────────────────────
-export function POSTerminal({ shop, products, categories, cashierName, cashierRole }: Props) {
+export function POSTerminal({ shop, products, categories, customers, cashierName, cashierRole }: Props) {
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
 
@@ -64,6 +73,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [cashTendered, setCashTendered] = useState("");
   const [note, setNote] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("none");
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -158,11 +168,12 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
     setCart([]);
     setDiscountAmount(0);
     setTaxOverride(null);
-    setShippingCost(0);
+    setPaymentMethod("CASH");
     setCashTendered("");
     setNote("");
-    setCheckoutOpen(false);
     setTxResult(null);
+    setCheckoutOpen(false);
+    setSelectedCustomerId("none");
   }, []);
 
   // Submit transaction
@@ -189,6 +200,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
         paymentMethod: method,
         amountPaid: method === "CASH" ? cashTenderedNum : total,
         note,
+        customerId: selectedCustomerId !== "none" ? selectedCustomerId : undefined,
       });
 
       setTxResult(result);
@@ -270,7 +282,7 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
           </div>
 
           {/* Product grid */}
-          <div className="flex-1 overflow-y-auto p-6 bg-background">
+          <div className="flex-1 overflow-y-auto p-6 bg-muted/20">
             {filteredProducts.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                 <MagnifyingGlass size={64} weight="duotone" className="mb-4 opacity-20" />
@@ -408,6 +420,26 @@ export function POSTerminal({ shop, products, categories, cashierName, cashierRo
                 <span className="font-price text-primary">{formatIDR(total)}</span>
               </div>
             </div>
+
+            {/* Customer Selection */}
+            {checkoutOpen && (
+              <div className="pt-4 pb-2 border-b border-border">
+                <label className="text-sm font-semibold mb-2 block">Pilih Pelanggan (Opsional)</label>
+                <Select value={selectedCustomerId} onValueChange={(val) => setSelectedCustomerId(val || "none")}>
+                  <SelectTrigger className="w-full h-10">
+                    <SelectValue placeholder="Pilih pelanggan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- Tanpa Pelanggan --</SelectItem>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} {c.phone ? `(${c.phone})` : ""} - {c.loyaltyPoints} Pts
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Cash tendered (only if CASH) */}
             {checkoutOpen && paymentMethod === "CASH" && (
