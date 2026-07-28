@@ -52,6 +52,7 @@ function RegisterForm() {
     toast.info("Fitur registrasi sosial belum tersedia.");
   };
 
+  return (
     <div className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 selection:bg-primary/30">
       {/* Blurred Background Image */}
       <div className="absolute inset-0 z-0 overflow-hidden">
