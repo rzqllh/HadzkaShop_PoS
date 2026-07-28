@@ -33,7 +33,7 @@ enum StockMovementType {
   SALE      // Driven by a completed transaction — referenceId = transactionId
   ADD       // Manual addition (received shipment, etc.)
   SUBTRACT  // Manual subtraction (damage, loss, etc.)
-  // REFUND reserved for future use — do not add logic now
+  REFUND    // Returned items
 }
 
 enum TillStatus {

@@ -14,6 +14,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   Table,
   TableBody,
   TableCell,
@@ -71,6 +80,10 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isVoiding, setIsVoiding] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  
+  const [voidDialogOpen, setVoidDialogOpen] = useState(false);
+  const [voidTargetId, setVoidTargetId] = useState<string | null>(null);
+  const [restock, setRestock] = useState(true);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -82,10 +95,19 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
     router.push(`?${params.toString()}`);
   }
 
-  async function handleVoid(id: string) {
-    if (!confirm("Are you sure you want to void this transaction? Stock will be restocked.")) return;
-    setIsVoiding(id);
-    const res = await voidTransaction(id);
+  function openVoidDialog(id: string) {
+    setVoidTargetId(id);
+    setRestock(true);
+    setVoidDialogOpen(true);
+  }
+
+  async function confirmVoid() {
+    if (!voidTargetId) return;
+    setIsVoiding(voidTargetId);
+    const id = voidTargetId;
+    setVoidDialogOpen(false);
+
+    const res = await voidTransaction(id, restock);
     if (!res.success) {
       toast.error(res.message);
     } else {
@@ -308,7 +330,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                               <div className="w-40 self-start">
                                 <Button
                                   variant="destructive"
-                                  onClick={() => handleVoid(tx.id)}
+                                  onClick={(e) => { e.stopPropagation(); openVoidDialog(tx.id); }}
                                   disabled={isVoiding === tx.id}
                                   className="w-full text-xs"
                                 >
@@ -354,6 +376,38 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
           </div>
         )}
       </div>
+
+      <Dialog open={voidDialogOpen} onOpenChange={setVoidDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Void Transaction</DialogTitle>
+            <DialogDescription>
+              This action will cancel the transaction and refund the amount.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 py-4">
+            <Checkbox
+              id="restock"
+              checked={restock}
+              onCheckedChange={(checked) => setRestock(checked as boolean)}
+            />
+            <label
+              htmlFor="restock"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Restock items (Return to inventory)
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVoidDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmVoid}>
+              Confirm Void
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

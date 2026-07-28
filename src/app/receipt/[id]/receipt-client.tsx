@@ -111,6 +111,12 @@ export function ReceiptClient({ transaction }: { transaction: any }) {
         <p>Terima Kasih Atas Kunjungan Anda</p>
       </div>
       
+      <div className="print:hidden flex justify-center mt-8 pt-4 border-t border-black/10">
+        <button onClick={() => window.print()} className="px-6 py-2 bg-black text-white rounded-full text-sm font-semibold hover:bg-black/80 transition-colors">
+          Cetak Ulang Struk
+        </button>
+      </div>
+      
       {/* Print styles block to ensure background and layout work properly in print mode */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {

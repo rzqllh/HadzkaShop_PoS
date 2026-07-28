@@ -4,13 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-export async function voidTransaction(transactionId: string) {
+export async function voidTransaction(transactionId: string, restock: boolean = true) {
   const session = await auth();
   if (session?.user?.role !== "OWNER") {
     return { success: false, message: "Unauthorized. Only owners can void transactions." };
   }
 
   const shopId = session.user.shopId;
+  const userId = session.user.id;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -22,12 +23,28 @@ export async function voidTransaction(transactionId: string) {
       if (!transaction) throw new Error("Transaction not found.");
       if (transaction.status === "CANCELLED") throw new Error("Transaction already voided.");
 
-      // Restore stock for each item
-      for (const item of transaction.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.quantity } },
-        });
+      if (restock) {
+        // Restore stock for each item and log movement
+        for (const item of transaction.items) {
+          const product = await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } },
+          });
+
+          await tx.stockMovement.create({
+            data: {
+              shopId,
+              productId: item.productId,
+              userId,
+              type: "REFUND",
+              quantity: item.quantity,
+              reason: `Refund for Txn #${transaction.transactionNumber}`,
+              referenceId: transaction.id,
+              previousStock: product.stock - item.quantity,
+              newStock: product.stock,
+            },
+          });
+        }
       }
 
       // Mark transaction as CANCELLED

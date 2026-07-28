@@ -26,11 +26,13 @@ import {
   Clock,
   CaretLeft,
   CaretRight,
+  ClipboardText,
 } from "@phosphor-icons/react";
 
 const navItems = [
   { href: "/dashboard", label: "Ringkasan", icon: ChartLineUp },
   { href: "/transactions", label: "Riwayat Transaksi", icon: Receipt },
+  { href: "/stock-movements", label: "Log Mutasi Stok", icon: ClipboardText },
   { href: "/products", label: "Daftar Produk", icon: Package },
   { href: "/categories", label: "Kategori", icon: ListDashes },
   { href: "/users", label: "Pengguna", icon: Users },
