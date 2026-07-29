@@ -112,7 +112,7 @@
 /* ── Dark mode (Pink & Teal Complementary) ─────────────────── */
 .dark {
   /* Dominant */
-  --background: #042F2E; /* Teal 950 */
+  --background: hsla(179, 100%, 10%, 0); /* Teal 950 */
   --foreground: #F0FDFA; /* Teal 50 */
 
   /* Surfaces */

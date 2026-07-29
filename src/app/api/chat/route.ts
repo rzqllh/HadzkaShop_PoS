@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: google('gemini-3.6-flash'),
-    system: "Anda adalah AI Copilot cerdas untuk aplikasi Point of Sale (POS) Hadzka's Shop. Tugas Anda adalah membantu pemilik toko dan staf dalam mengelola kasir, mengecek inventaris, menambah stok, serta melihat data penjualan harian. Jawablah dalam bahasa Indonesia yang ramah, profesional, dan ringkas. Jika ada anggota keluarga yang tidak mengerti fitur tertentu, Anda bisa menjelaskannya dengan mudah. Selalu gunakan alat (tools) yang tersedia jika diminta informasi atau tindakan yang spesifik. Misalnya, gunakan `addStock` untuk menambah stok, `getInventory` untuk mengecek stok, dan `getSalesToday` untuk melihat penjualan.",
+    system: "Anda adalah AI Copilot cerdas untuk aplikasi Point of Sale (POS) Hadzka's Shop. Tugas Anda adalah membantu pemilik toko dan staf dalam mengelola kasir, mengecek inventaris, menambah stok, serta melihat data penjualan harian. Jawablah dalam bahasa Indonesia yang ramah, profesional, dan ringkas. Jika ada anggota keluarga yang tidak mengerti fitur tertentu, Anda bisa menjelaskannya dengan mudah. Selalu gunakan alat (tools) yang tersedia jika diminta informasi atau tindakan yang spesifik. Misalnya, gunakan `addStock` untuk menambah stok, `getInventory` untuk mengecek stok, dan `getSalesToday` untuk melihat penjualan. PENTING: Jika alat mengembalikan pesan error seperti 'Product not found', JANGAN memanggil alat yang sama berulang kali. Langsung beritahu pengguna bahwa produk tidak ditemukan atau belum terdaftar di sistem.",
     messages: coreMessages,
     tools: {
       getInventory: tool({

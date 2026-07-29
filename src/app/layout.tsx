@@ -27,12 +27,13 @@ export default function RootLayout({
       className={`${inter.variable} h-full antialiased font-sans`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          scriptProps={{ id: "theme-script" }}
         >
           <TRPCReactProvider>
             <TooltipProvider>
