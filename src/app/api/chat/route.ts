@@ -51,6 +51,10 @@ export async function POST(req: Request) {
           reason: z.string().optional(),
         }),
         execute: async (args: { productNameOrSku: string; quantity: number; reason?: string }) => {
+          if (session.user.role !== 'OWNER') {
+            return 'Permission denied: Only OWNER can add stock.';
+          }
+          
           const product = await prisma.product.findFirst({
             where: {
               shopId,
