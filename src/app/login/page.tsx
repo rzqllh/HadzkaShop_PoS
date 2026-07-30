@@ -9,11 +9,12 @@ import { toast } from "@/lib/toast";
 import { AuthContainer } from "@/components/auth/AuthContainer";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
+import { sanitizeCallbackUrl } from "@/lib/safe-redirect";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/pos";
+  const callbackUrl = sanitizeCallbackUrl(searchParams.get("callbackUrl"));
   const errorParam = searchParams.get("error");
   const [errorMsg, setErrorMsg] = useState(errorParam);
   const [isLoading, setIsLoading] = useState(false);
@@ -139,14 +140,6 @@ function LoginForm() {
           </button>
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary font-semibold hover:underline">
-              Create an account
-            </Link>
-          </p>
-        </div>
       </div>
     </AuthContainer>
   );

@@ -43,31 +43,42 @@ export function AICopilot() {
     }
   }, [messages, status, isOpen]);
 
-  useEffect(() => {
-    if (isOpen && messages.length === 0 && !suggestions && !isGeneratingSuggestions) {
-      const cached = sessionStorage.getItem('ai-copilot-suggestions');
-      if (cached) {
-        try {
-          setSuggestions(JSON.parse(cached));
-          return;
-        } catch (e) {
-          console.error("Failed to parse cached suggestions", e);
-        }
-      }
+  async function loadSuggestions() {
+    if (messages.length > 0 || suggestions || isGeneratingSuggestions) return;
 
-      setIsGeneratingSuggestions(true);
-      fetch('/api/chat/suggestions')
-        .then(res => res.json())
-        .then(data => {
-          if (data?.suggestions) {
-            setSuggestions(data.suggestions);
-            sessionStorage.setItem('ai-copilot-suggestions', JSON.stringify(data.suggestions));
-          }
-        })
-        .catch(console.error)
-        .finally(() => setIsGeneratingSuggestions(false));
+    const cached = sessionStorage.getItem("ai-copilot-suggestions");
+    if (cached) {
+      try {
+        setSuggestions(JSON.parse(cached));
+        return;
+      } catch (error) {
+        console.error("Failed to parse cached suggestions", error);
+      }
     }
-  }, [isOpen, messages.length, suggestions, isGeneratingSuggestions]);
+
+    setIsGeneratingSuggestions(true);
+    try {
+      const response = await fetch("/api/chat/suggestions");
+      const data = await response.json();
+      if (data?.suggestions) {
+        setSuggestions(data.suggestions);
+        sessionStorage.setItem(
+          "ai-copilot-suggestions",
+          JSON.stringify(data.suggestions),
+        );
+      }
+    } catch (error) {
+      console.error("Failed to load AI suggestions", error);
+    } finally {
+      setIsGeneratingSuggestions(false);
+    }
+  }
+
+  function toggleCopilot() {
+    const nextOpen = !isOpen;
+    setIsOpen(nextOpen);
+    if (nextOpen) void loadSuggestions();
+  }
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -176,7 +187,7 @@ export function AICopilot() {
                       )}
                     >
                       <div className="break-words leading-relaxed w-full">
-                        {m.parts?.map((part: any, index: number) => {
+                        {m.parts?.map((part, index: number) => {
                           if (part.type === 'text') {
                             return (
                               <div key={index} className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-normal prose-p:m-0 prose-p:mb-2 last:prose-p:mb-0 prose-pre:p-0 prose-li:m-0">
@@ -187,20 +198,24 @@ export function AICopilot() {
                             );
                           }
                           
-                          if (part.type?.startsWith('tool-') || part.type === 'dynamic-tool') {
-                            const toolName = part.toolName || (part.type.startsWith('tool-') ? part.type.slice(5) : 'unknown');
+                          if (
+                            (part.type.startsWith("tool-") || part.type === "dynamic-tool") &&
+                            "state" in part
+                          ) {
+                            const toolName =
+                              part.type === "dynamic-tool"
+                                ? part.toolName
+                                : part.type.slice(5);
                             const isResult = part.state === 'output-available' || part.state === 'output-error';
                             let argsString = '';
                             try {
-                              if (part.input) {
+                              if ("input" in part && part.input) {
                                 argsString = `(${JSON.stringify(part.input)})`;
-                              } else if (part.args) {
-                                argsString = `(${JSON.stringify(part.args)})`;
                               }
-                            } catch (e) {}
+                            } catch {}
                             
                             return (
-                              <div key={part.toolCallId || index} className="mt-2 p-2 bg-background border border-border/50 rounded-md text-xs font-mono flex flex-col gap-1 text-muted-foreground break-all">
+                              <div key={"toolCallId" in part ? part.toolCallId : index} className="mt-2 p-2 bg-background border border-border/50 rounded-md text-xs font-mono flex flex-col gap-1 text-muted-foreground break-all">
                                 <div className="flex items-center gap-2">
                                   {!isResult && <BouncingDots />}
                                   <span className="font-semibold">{isResult ? `Selesai: ${toolName}` : `Memproses: ${toolName}`}</span>
@@ -208,12 +223,12 @@ export function AICopilot() {
                                 {!isResult && argsString && (
                                   <div className="pl-5 opacity-75">{argsString}</div>
                                 )}
-                                {part.state === 'output-available' && part.output && (
+                                {part.state === 'output-available' && "output" in part && Boolean(part.output) && (
                                   <div className="pl-5 opacity-90 text-primary font-sans mt-1">
                                     ↳ {typeof part.output === 'string' ? part.output : JSON.stringify(part.output)}
                                   </div>
                                 )}
-                                {part.state === 'output-error' && part.errorText && (
+                                {part.state === 'output-error' && "errorText" in part && Boolean(part.errorText) && (
                                   <div className="pl-5 opacity-90 text-destructive font-sans mt-1">
                                     ↳ Error: {part.errorText}
                                   </div>
@@ -262,7 +277,7 @@ export function AICopilot() {
 
       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}>
         <Button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={toggleCopilot}
           size="icon"
           className={cn(
             "h-14 w-14 rounded-full shadow-lg text-white border-2 border-background transition-all duration-200",

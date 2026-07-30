@@ -3,8 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { voidCashTransactionWithDatabase } from "@/server/transactions/void";
+import { createMidtransClientFromEnv } from "@/server/payments/midtrans/client";
+import { applyMidtransStatus } from "@/server/payments/midtrans/transitions";
 
-export async function voidTransaction(transactionId: string, restock: boolean = true) {
+export async function voidTransaction(transactionId: string) {
   const session = await auth();
   if (session?.user?.role !== "OWNER") {
     return { success: false, message: "Unauthorized. Only owners can void transactions." };
@@ -14,49 +17,61 @@ export async function voidTransaction(transactionId: string, restock: boolean = 
   const userId = session.user.id;
 
   try {
-    await prisma.$transaction(async (tx) => {
-      const transaction = await tx.transaction.findUnique({
-        where: { id: transactionId, shopId },
-        include: { items: true },
-      });
+    const transaction = await prisma.transaction.findFirst({
+      where: { id: transactionId, shopId },
+      select: {
+        paymentMethod: true,
+        status: true,
+        midtransOrderId: true,
+      },
+    });
+    if (!transaction) throw new Error("Transaksi tidak ditemukan.");
 
-      if (!transaction) throw new Error("Transaction not found.");
-      if (transaction.status === "CANCELLED") throw new Error("Transaction already voided.");
-
-      if (restock) {
-        // Restore stock for each item and log movement
-        for (const item of transaction.items) {
-          const product = await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
-          });
-
-          await tx.stockMovement.create({
-            data: {
-              shopId,
-              productId: item.productId,
-              userId,
-              type: "REFUND",
-              quantity: item.quantity,
-              reason: `Refund for Txn #${transaction.transactionNumber}`,
-              referenceId: transaction.id,
-              previousStock: product.stock - item.quantity,
-              newStock: product.stock,
-            },
-          });
-        }
+    if (transaction.paymentMethod === "QRIS") {
+      if (transaction.status === "COMPLETED") {
+        throw new Error(
+          "QRIS yang sudah settled memerlukan refund flow provider.",
+        );
+      }
+      if (
+        transaction.status !== "PENDING" ||
+        !transaction.midtransOrderId
+      ) {
+        throw new Error(
+          "QRIS hanya dapat dibatalkan saat masih pending.",
+        );
       }
 
-      // Mark transaction as CANCELLED
-      await tx.transaction.update({
-        where: { id: transactionId },
-        data: { status: "CANCELLED" },
+      const provider = await createMidtransClientFromEnv().cancel(
+        transaction.midtransOrderId,
+      );
+      if (provider.order_id !== transaction.midtransOrderId) {
+        throw new Error("Midtrans order ID tidak cocok.");
+      }
+      await applyMidtransStatus(prisma, {
+        orderId: provider.order_id,
+        transactionStatus: provider.transaction_status,
+        transactionId: provider.transaction_id,
+        grossAmount: provider.gross_amount,
+        fraudStatus: provider.fraud_status,
       });
+    } else {
+    await voidCashTransactionWithDatabase(prisma, {
+      transactionId,
+      shopId,
+      ownerId: userId,
     });
+    }
 
     revalidatePath("/transactions");
     revalidatePath("/dashboard");
-    return { success: true, message: "Transaction voided and stock restored." };
+    return {
+      success: true,
+      message:
+        transaction.paymentMethod === "QRIS"
+          ? "QRIS dibatalkan di provider dan reservasi stok dilepas."
+          : "Transaksi dibatalkan dan seluruh efeknya dikembalikan.",
+    };
   } catch (err: unknown) {
     return { success: false, message: err instanceof Error ? err.message : "Failed to void transaction." };
   }

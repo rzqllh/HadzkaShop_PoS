@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { POSTerminal } from "./pos-terminal";
+import { qrisDisabledReason, qrisEnabled } from "@/server/config/features";
+import Script from "next/script";
 
 export default async function POSPage() {
   const session = await auth();
@@ -32,18 +34,35 @@ export default async function POSPage() {
 
   if (!shop) redirect("/login");
 
+  const snapScriptUrl =
+    process.env.MIDTRANS_ENV === "production"
+      ? "https://app.midtrans.com/snap/snap.js"
+      : "https://app.sandbox.midtrans.com/snap/snap.js";
+
   return (
-    <POSTerminal
+    <>
+      {qrisEnabled && (
+        <Script
+          src={snapScriptUrl}
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+          strategy="afterInteractive"
+        />
+      )}
+      <POSTerminal
       shop={{ ...shop, taxRate: Number(shop.taxRate) }}
-      products={products.map((p) => ({
-        ...p,
-        price: Number(p.price),
-        costPrice: p.costPrice ? Number(p.costPrice) : null,
+      products={products.map(({ reservedStock, ...product }) => ({
+        ...product,
+        stock: product.stock - reservedStock,
+        price: Number(product.price),
+        costPrice: product.costPrice ? Number(product.costPrice) : null,
       }))}
       categories={categories}
       customers={customers}
       cashierName={session.user.name ?? "Cashier"}
       cashierRole={session.user.role as string}
-    />
+      qrisEnabled={qrisEnabled}
+      qrisDisabledReason={qrisDisabledReason}
+      />
+    </>
   );
 }

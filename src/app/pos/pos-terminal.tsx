@@ -2,11 +2,9 @@
 
 import { useState, useMemo, useCallback, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
-import { submitTransaction } from "./actions";
 import { MagnifyingGlass, ShoppingCart, Trash, Money, QrCode, Bell } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProductCard } from "@/components/pos/product-card";
 import { CartLineItem } from "@/components/pos/cart-line-item";
@@ -46,6 +44,8 @@ type Props = {
   customers: Customer[];
   cashierName: string;
   cashierRole: string;
+  qrisEnabled: boolean;
+  qrisDisabledReason: string;
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -58,9 +58,23 @@ function formatIDR(n: number) {
 }
 
 type PaymentMethod = "CASH" | "QRIS";
+type PendingPayment = {
+  transactionId: string;
+  status: string;
+  snapToken?: string;
+};
 
 // ── POS Terminal ───────────────────────────────────────
-export function POSTerminal({ shop, products, categories, customers, cashierName, cashierRole }: Props) {
+export function POSTerminal({
+  shop,
+  products,
+  categories,
+  customers,
+  cashierName,
+  cashierRole,
+  qrisEnabled,
+  qrisDisabledReason,
+}: Props) {
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
 
@@ -76,6 +90,8 @@ export function POSTerminal({ shop, products, categories, customers, cashierName
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("none");
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const clientRequestIdRef = useRef<string | null>(null);
+  const openedSnapTokenRef = useRef<string | null>(null);
 
   // UI state
   const [searchQ, setSearchQ] = useState("");
@@ -83,6 +99,7 @@ export function POSTerminal({ shop, products, categories, customers, cashierName
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [txResult, setTxResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -168,13 +185,98 @@ export function POSTerminal({ shop, products, categories, customers, cashierName
     setCart([]);
     setDiscountAmount(0);
     setTaxOverride(null);
+    setShippingCost(0);
     setPaymentMethod("CASH");
     setCashTendered("");
     setNote("");
     setTxResult(null);
+    setPendingPayment(null);
     setCheckoutOpen(false);
     setSelectedCustomerId("none");
+    clientRequestIdRef.current = null;
+    openedSnapTokenRef.current = null;
   }, []);
+
+  const syncPaymentStatus = useCallback(async (transactionId: string) => {
+    await fetch(`/api/transactions/${transactionId}/status`, {
+      method: "POST",
+    });
+  }, []);
+
+  const openSnap = useCallback(
+    (payment: PendingPayment) => {
+      if (
+        !payment.snapToken ||
+        !window.snap ||
+        openedSnapTokenRef.current === payment.snapToken
+      ) {
+        return;
+      }
+
+      openedSnapTokenRef.current = payment.snapToken;
+      const sync = () => void syncPaymentStatus(payment.transactionId);
+      window.snap.pay(payment.snapToken, {
+        onSuccess: sync,
+        onPending: sync,
+        onError: sync,
+        onClose: sync,
+      });
+    },
+    [syncPaymentStatus],
+  );
+
+  useEffect(() => {
+    if (
+      !pendingPayment ||
+      !["CREATING_PAYMENT", "PENDING"].includes(pendingPayment.status)
+    ) {
+      return;
+    }
+
+    openSnap(pendingPayment);
+    const intervalId = window.setInterval(async () => {
+      try {
+        const response = await fetch(
+          `/api/transactions/${pendingPayment.transactionId}/status`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) return;
+
+        const current = (await response.json()) as {
+          status: string;
+          snapToken?: string | null;
+        };
+        const nextPayment = {
+          transactionId: pendingPayment.transactionId,
+          status: current.status,
+          snapToken: current.snapToken ?? pendingPayment.snapToken,
+        };
+        setPendingPayment(nextPayment);
+        openSnap(nextPayment);
+
+        if (current.status === "COMPLETED") {
+          setTxResult({
+            success: true,
+            message: "Pembayaran QRIS terverifikasi.",
+          });
+          window.setTimeout(clearCart, 3000);
+        } else if (
+          ["FAILED", "CANCELLED", "EXPIRED", "REFUNDED"].includes(current.status)
+        ) {
+          clientRequestIdRef.current = null;
+          openedSnapTokenRef.current = null;
+          setTxResult({
+            success: false,
+            message: "Pembayaran QRIS tidak selesai. Reservasi stok sudah dilepas.",
+          });
+        }
+      } catch {
+        // Poll berikutnya menangani gangguan jaringan sementara.
+      }
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [clearCart, openSnap, pendingPayment]);
 
   // Submit transaction
   function handleSubmit(method: PaymentMethod) {
@@ -182,31 +284,51 @@ export function POSTerminal({ shop, products, categories, customers, cashierName
     if (cart.length === 0) return;
 
     startTransition(async () => {
+      clientRequestIdRef.current ??= crypto.randomUUID();
       // Lazy import to keep the client bundle smaller if possible, or just use normal import.
       const { submitTransaction } = await import("./actions");
       const result = await submitTransaction({
+        clientRequestId: clientRequestIdRef.current,
         items: cart.map((i) => ({
           productId: i.product.id,
           quantity: i.qty,
-          unitPrice: i.product.price,
-          productName: i.product.name,
         })),
-        discountAmount,
-        taxRate,
-        taxAmount,
-        shippingCost,
-        subtotal,
-        total,
+        discount:
+          discountAmount > 0
+            ? { type: "FIXED", value: String(discountAmount) }
+            : null,
+        taxRateOverride:
+          taxOverride === null ? null : String(taxOverride),
+        shippingCost: String(shippingCost),
         paymentMethod: method,
-        amountPaid: method === "CASH" ? cashTenderedNum : total,
+        amountPaid: method === "CASH" ? String(cashTenderedNum) : undefined,
         note,
         customerId: selectedCustomerId !== "none" ? selectedCustomerId : undefined,
       });
 
       setTxResult(result);
-      if (result.success) {
-        // Stay on success screen briefly, then reset
+      if (
+        method === "QRIS" &&
+        result.success &&
+        result.transactionId &&
+        result.status
+      ) {
+        const payment = {
+          transactionId: result.transactionId,
+          status: result.status,
+          snapToken: result.snapToken,
+        };
+        setTxResult(null);
+        setPendingPayment(payment);
+        openSnap(payment);
+      } else if (result.success) {
         setTimeout(clearCart, 3000);
+      } else if (
+        method === "QRIS" &&
+        result.status &&
+        ["FAILED", "CANCELLED", "EXPIRED"].includes(result.status)
+      ) {
+        clientRequestIdRef.current = null;
       }
     });
   }
@@ -471,6 +593,15 @@ export function POSTerminal({ shop, products, categories, customers, cashierName
                 {txResult.message}
               </div>
             )}
+            {pendingPayment &&
+              ["CREATING_PAYMENT", "PENDING"].includes(pendingPayment.status) && (
+                <div
+                  role="status"
+                  className="rounded-md border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-medium text-primary mt-4"
+                >
+                  Menunggu pembayaran QRIS terverifikasi. Status diperbarui otomatis.
+                </div>
+              )}
 
             {/* Payment buttons */}
             <div className="pt-4">
@@ -497,13 +628,19 @@ export function POSTerminal({ shop, products, categories, customers, cashierName
                   <Button
                     size="lg"
                     onClick={() => handleSubmit("QRIS")}
-                    disabled={isPending || cart.length === 0}
+                    disabled={!qrisEnabled || isPending || cart.length === 0}
+                    title={!qrisEnabled ? qrisDisabledReason : undefined}
                     className="h-12 text-base font-bold shadow-sm transition-all hover:-translate-y-[1px] active:translate-y-[1px]"
                   >
                     <QrCode size={24} weight="duotone" className="mr-2" />
                     {isPending && paymentMethod === "QRIS" ? "..." : "QRIS"}
                   </Button>
                 </div>
+              )}
+              {!qrisEnabled && checkoutOpen && (
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                  {qrisDisabledReason}
+                </p>
               )}
             </div>
           </div>

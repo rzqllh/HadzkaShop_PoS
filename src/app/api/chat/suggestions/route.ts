@@ -6,7 +6,7 @@ import { auth } from '@/auth';
 
 export const maxDuration = 60;
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await auth();
   
   if (!session || !session.user) {

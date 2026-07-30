@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
 
 export const customersRouter = createTRPCRouter({
-  getAll: protectedProcedure
-    .input(z.object({ shopId: z.string() }))
-    .query(async ({ ctx, input }) => {
+  getAll: protectedProcedure.query(async ({ ctx }) => {
       const customers = await ctx.db.customer.findMany({
-        where: { shopId: input.shopId },
+        where: { shopId: ctx.session.user.shopId },
         orderBy: { createdAt: "desc" },
       });
       return customers;
@@ -15,10 +14,14 @@ export const customersRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const customer = await ctx.db.customer.findUnique({
-        where: { id: input.id },
+      const customer = await ctx.db.customer.findFirst({
+        where: {
+          id: input.id,
+          shopId: ctx.session.user.shopId,
+        },
         include: {
           transactions: {
+            where: { shopId: ctx.session.user.shopId },
             orderBy: { createdAt: "desc" },
             take: 50,
           },
@@ -30,7 +33,6 @@ export const customersRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
       z.object({
-        shopId: z.string(),
         name: z.string().min(1),
         phone: z.string().optional(),
         email: z.string().email().optional().or(z.literal("")),
@@ -40,7 +42,7 @@ export const customersRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const customer = await ctx.db.customer.create({
         data: {
-          shopId: input.shopId,
+          shopId: ctx.session.user.shopId,
           name: input.name,
           phone: input.phone,
           email: input.email === "" ? undefined : input.email,
@@ -61,24 +63,43 @@ export const customersRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const customer = await ctx.db.customer.update({
-        where: { id: input.id },
+      const { id, ...data } = input;
+      const result = await ctx.db.customer.updateMany({
+        where: {
+          id,
+          shopId: ctx.session.user.shopId,
+        },
         data: {
-          name: input.name,
-          phone: input.phone,
-          email: input.email === "" ? undefined : input.email,
-          address: input.address,
+          name: data.name,
+          phone: data.phone,
+          email: data.email === "" ? null : data.email,
+          address: data.address,
         },
       });
-      return customer;
+
+      if (result.count !== 1) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Pelanggan tidak ditemukan" });
+      }
+
+      return ctx.db.customer.findFirstOrThrow({
+        where: { id, shopId: ctx.session.user.shopId },
+      });
     }),
 
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.customer.delete({
-        where: { id: input.id },
+      const result = await ctx.db.customer.deleteMany({
+        where: {
+          id: input.id,
+          shopId: ctx.session.user.shopId,
+        },
       });
+
+      if (result.count !== 1) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Pelanggan tidak ditemukan" });
+      }
+
       return { success: true };
     }),
 });

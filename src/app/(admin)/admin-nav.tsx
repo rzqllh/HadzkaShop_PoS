@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -26,9 +26,7 @@ import {
   SignOut,
   Users,
   UserList,
-  Clock,
   CaretLeft,
-  CaretRight,
   ClipboardText,
   Moon,
   Sun,
@@ -45,6 +43,8 @@ const navItems = [
   { href: "/settings", label: "Pengaturan", icon: Gear },
 ];
 
+const subscribeToHydration = () => () => undefined;
+
 export function AdminNav() {
   const pathname = usePathname();
   const { data: lowStockCount } = api.products.getLowStockCount.useQuery(undefined, {
@@ -53,11 +53,11 @@ export function AdminNav() {
 
   const { theme, setTheme } = useTheme();
   const [isMinimized, setIsMinimized] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
 
   return (
     <TooltipProvider delay={0}>

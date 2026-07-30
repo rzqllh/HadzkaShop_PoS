@@ -7,7 +7,7 @@ export default async function CustomersPage() {
   const session = await auth();
   if (!session?.user?.shopId) redirect("/login");
   
-  await api.customers.getAll.prefetch({ shopId: session.user.shopId });
+  await api.customers.getAll.prefetch();
 
   return (
     <HydrateClient>
@@ -20,7 +20,7 @@ export default async function CustomersPage() {
             </p>
           </div>
         </div>
-        <CustomersClient shopId={session.user.shopId} />
+        <CustomersClient />
       </div>
     </HydrateClient>
   );

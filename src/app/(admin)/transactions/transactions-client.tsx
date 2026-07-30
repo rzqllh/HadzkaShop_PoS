@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { voidTransaction, exportTransactionsCsv } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { toast } from "@/lib/toast";
 
@@ -78,16 +76,13 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
   
   const [voidDialogOpen, setVoidDialogOpen] = useState(false);
   const [voidTargetId, setVoidTargetId] = useState<string | null>(null);
-  const [restock, setRestock] = useState(true);
 
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
+  const columns: Column<Transaction>[] = [
     { header: "No", className: "w-[50px] text-center", cell: (_, idx) => <span className="font-medium text-center block">{idx + 1 + (currentPage - 1) * pageSize}</span> },
     { header: "Txn ID", className: "whitespace-nowrap font-medium text-center", accessorKey: "transactionNumber" },
     { header: "Date", className: "whitespace-nowrap text-muted-foreground", cell: (tx) => formatDate(tx.createdAt) },
     { header: "Cashier", className: "whitespace-nowrap text-muted-foreground", cell: (tx) => tx.cashier.name },
-    { header: "Items", className: "whitespace-nowrap text-center font-medium", cell: (tx) => tx.items.reduce((acc: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => acc + item.quantity, 0) },
+    { header: "Items", className: "whitespace-nowrap text-center font-medium", cell: (tx) => tx.items.reduce((acc, item) => acc + item.quantity, 0) },
     { header: "Method", className: "whitespace-nowrap text-center", cell: (tx) => <div className="flex justify-center"><Badge variant="secondary" className="font-medium">{tx.paymentMethod}</Badge></div> },
     { 
       header: "Status", 
@@ -128,7 +123,6 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
 
   function openVoidDialog(id: string) {
     setVoidTargetId(id);
-    setRestock(true);
     setVoidDialogOpen(true);
   }
 
@@ -138,7 +132,7 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
     const id = voidTargetId;
     setVoidDialogOpen(false);
 
-    const res = await voidTransaction(id, restock);
+    const res = await voidTransaction(id);
     if (!res.success) {
       toast.error(res.message);
     } else {
@@ -321,7 +315,8 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                 </div>
               </div>
               {/* Actions */}
-              {tx.status === "COMPLETED" && (
+              {((tx.paymentMethod === "CASH" && tx.status === "COMPLETED") ||
+                (tx.paymentMethod === "QRIS" && tx.status === "PENDING")) && (
                 <div className="w-40 self-start">
                   <Button
                     variant="destructive"
@@ -329,7 +324,11 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
                     disabled={isVoiding === tx.id}
                     className="w-full text-xs"
                   >
-                    {isVoiding === tx.id ? "Voiding…" : "Void Transaction"}
+                    {isVoiding === tx.id
+                      ? "Processing…"
+                      : tx.paymentMethod === "QRIS"
+                        ? "Cancel QRIS"
+                        : "Void Transaction"}
                   </Button>
                 </div>
               )}
@@ -343,22 +342,13 @@ export function TransactionsClient({ transactions, totalCount, currentPage, page
           <DialogHeader>
             <DialogTitle>Void Transaction</DialogTitle>
             <DialogDescription>
-              This action will cancel the transaction and refund the amount.
+              Batalkan transaksi ini dengan alur yang sesuai metode pembayarannya.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center space-x-2 py-4">
-            <Checkbox
-              id="restock"
-              checked={restock}
-              onCheckedChange={(checked) => setRestock(checked as boolean)}
-            />
-            <label
-              htmlFor="restock"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Restock items (Return to inventory)
-            </label>
-          </div>
+          <p className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+            Void tunai selalu mengembalikan stok, ledger, dan loyalitas pelanggan.
+            Transaksi QRIS harus melalui alur cancel atau refund provider.
+          </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVoidDialogOpen(false)}>
               Cancel

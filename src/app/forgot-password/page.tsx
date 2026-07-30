@@ -3,7 +3,6 @@
 import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { toast } from "@/lib/toast";
 import { createClient } from "@/lib/client";
 import { AuthContainer } from "@/components/auth/AuthContainer";
 
@@ -21,7 +20,7 @@ function ForgotPasswordForm() {
     
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     });
 
     if (error) {

@@ -29,9 +29,8 @@ async function main() {
       },
     });
 
-    console.log("Created Shop and Owner account:");
-    console.log("Email: owner@hadzkashop.com");
-    console.log("Password: password123");
+    console.log("Created development Shop and unlinked Owner record.");
+    console.log("Run pnpm bootstrap:owner to provision a login securely.");
   } else {
     console.log("Owner already exists. Skipping seed.");
   }
