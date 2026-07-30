@@ -12,7 +12,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,8 +36,8 @@ const formSchema = z.object({
   address: z.string().optional(),
 });
 
-export function CustomersClient({ shopId }: { shopId: string }) {
-  const { data: customers, isLoading } = api.customers.getAll.useQuery({ shopId });
+export function CustomersClient() {
+  const { data: customers, isLoading } = api.customers.getAll.useQuery();
   const utils = api.useUtils();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -90,7 +89,7 @@ export function CustomersClient({ shopId }: { shopId: string }) {
     if (editingId) {
       updateMutation.mutate({ id: editingId, ...values });
     } else {
-      createMutation.mutate({ shopId, ...values });
+      createMutation.mutate(values);
     }
   }
 
@@ -99,7 +98,8 @@ export function CustomersClient({ shopId }: { shopId: string }) {
     { enabled: !!selectedCustomerId && historyOpen }
   );
 
-  const columns: Column<any>[] = [
+  type CustomerRow = NonNullable<typeof customers>[number];
+  const columns: Column<CustomerRow>[] = [
     {
       header: "Nama",
       accessorKey: "name",

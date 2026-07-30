@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/client";
+import { useState } from "react";
 import { api } from "@/trpc/react";
 import { toast } from "@/lib/toast";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -13,7 +12,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -41,26 +39,15 @@ import { Badge } from "@/components/ui/badge";
 const formSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
   email: z.string().email("Email tidak valid"),
-  password: z.string().optional().refine(val => !val || val.length >= 6, {
-    message: "Password minimal 6 karakter jika diisi",
+  password: z.string().optional().refine(val => !val || val.length >= 8, {
+    message: "Password minimal 8 karakter jika diisi",
   }),
   role: z.enum(["OWNER", "CASHIER"]),
-}).refine(data => {
-  // If editing, password is optional. If creating, it's required.
-  // We'll handle this loosely since Zod refine across fields can be tricky for forms.
-  return true;
 });
 
-export function UsersClient() {
+export function UsersClient({ currentUserId }: { currentUserId: string }) {
   const { data: users, isLoading } = api.users.getAll.useQuery();
   const utils = api.useUtils();
-  const [sessionUser, setSessionUser] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>(null);
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setSessionUser(data.user);
-    });
-  }, []);
   
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -84,16 +71,11 @@ export function UsersClient() {
     onError: (err) => toast.error(err.message),
   });
 
-  const updateMutation = api.users.update.useMutation({
-    onSuccess: () => {
-      toast.success("Pengguna berhasil diubah");
-      utils.users.getAll.invalidate();
-      setIsOpen(false);
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const updateProfileMutation = api.users.updateProfile.useMutation();
+  const updateEmailMutation = api.users.updateEmail.useMutation();
+  const updatePasswordMutation = api.users.updatePassword.useMutation();
 
-  const deleteMutation = api.users.delete.useMutation({
+  const deleteMutation = api.users.deactivate.useMutation({
     onSuccess: () => {
       toast.success("Pengguna berhasil dinonaktifkan");
       utils.users.getAll.invalidate();
@@ -101,15 +83,33 @@ export function UsersClient() {
     onError: (err) => toast.error(err.message),
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingId) {
-      updateMutation.mutate({ 
-        id: editingId, 
-        name: values.name,
-        email: values.email,
-        role: values.role,
-        password: values.password || undefined
-      });
+      const original = users?.find((user) => user.id === editingId);
+      try {
+        await updateProfileMutation.mutateAsync({
+          id: editingId,
+          name: values.name,
+          role: values.role,
+        });
+        if (original && values.email.trim().toLowerCase() !== original.email) {
+          await updateEmailMutation.mutateAsync({
+            id: editingId,
+            email: values.email,
+          });
+        }
+        if (values.password) {
+          await updatePasswordMutation.mutateAsync({
+            id: editingId,
+            password: values.password,
+          });
+        }
+        await utils.users.getAll.invalidate();
+        toast.success("Pengguna berhasil diubah");
+        setIsOpen(false);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Gagal mengubah pengguna");
+      }
     } else {
       if (!values.password) {
         form.setError("password", { message: "Password wajib diisi untuk pengguna baru" });
@@ -124,7 +124,8 @@ export function UsersClient() {
     }
   };
 
-  const handleEdit = (user: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+  type UserRow = NonNullable<typeof users>[number];
+  const handleEdit = (user: UserRow) => {
     setEditingId(user.id);
     form.reset({
       name: user.name,
@@ -152,7 +153,7 @@ export function UsersClient() {
     setIsOpen(true);
   };
 
-  const columns: Column<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>[] = [
+  const columns: Column<UserRow>[] = [
     { 
       header: "No", 
       className: "w-[50px] text-center", 
@@ -185,7 +186,7 @@ export function UsersClient() {
             <Pencil className="w-4 h-4 mr-1" />
             <span className="hidden sm:inline">Ubah</span>
           </Button>
-          {user.email !== sessionUser?.email && (
+          {user.id !== currentUserId && (
             <Button 
               variant="outline" 
               size="sm" 
@@ -289,7 +290,15 @@ export function UsersClient() {
                   <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                     Batal
                   </Button>
-                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={
+                      createMutation.isPending ||
+                      updateProfileMutation.isPending ||
+                      updateEmailMutation.isPending ||
+                      updatePasswordMutation.isPending
+                    }
+                  >
                     Simpan
                   </Button>
                 </DialogFooter>

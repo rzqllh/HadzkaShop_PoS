@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { StatCard } from "@/components/pos/stat-card";
-import { Money, Receipt, Package, Bank, ChartLineUp } from "@phosphor-icons/react/dist/ssr";
+import { Money, Receipt, Package, ChartLineUp } from "@phosphor-icons/react/dist/ssr";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -17,15 +17,8 @@ export default async function DashboardPage() {
   sevenDaysAgo.setDate(today.getDate() - 6);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
-  const [productCount, lowStockCount, todayTxCount, todayRevenueObj, recentTxs, weekTxs, todayFullTxs] = await Promise.all([
+  const [productCount, todayTxCount, todayRevenueObj, recentTxs, weekTxs, todayFullTxs] = await Promise.all([
     prisma.product.count({ where: { shopId, isActive: true } }),
-    prisma.product.count({
-      where: {
-        shopId,
-        isActive: true,
-        stock: { lte: prisma.product.fields.lowStockThreshold as any /* eslint-disable-line @typescript-eslint/no-explicit-any */ },
-      },
-    }).catch(() => 0),
     prisma.transaction.count({
       where: { shopId, status: "COMPLETED", createdAt: { gte: today } },
     }),

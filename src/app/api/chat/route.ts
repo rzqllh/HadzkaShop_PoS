@@ -3,6 +3,7 @@ import { streamText, tool, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { adjustInventory } from '@/server/inventory/service';
 
 export const maxDuration = 60;
 
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
         description: 'Add physical stock to a product when new items arrive from a supplier.',
         inputSchema: z.object({
           productNameOrSku: z.string(),
-          quantity: z.number(),
+          quantity: z.number().int().positive(),
           reason: z.string().optional(),
         }),
         execute: async (args: { productNameOrSku: string; quantity: number; reason?: string }) => {
@@ -67,27 +68,16 @@ export async function POST(req: Request) {
           if (!product) return 'Product not found';
           
           try {
-            await prisma.$transaction(async (tx) => {
-              await tx.product.update({
-                where: { id: product.id },
-                data: { stock: { increment: args.quantity } }
-              });
-              
-              await tx.stockMovement.create({
-                data: {
-                  shopId,
-                  productId: product.id,
-                  userId,
-                  type: 'ADD',
-                  quantity: args.quantity,
-                  previousStock: product.stock,
-                  newStock: product.stock + args.quantity,
-                  reason: args.reason || 'AI Copilot added stock',
-                }
-              });
+            const updated = await adjustInventory(prisma, {
+              shopId,
+              productId: product.id,
+              userId,
+              mode: "ADD",
+              quantity: args.quantity,
+              reason: args.reason || "AI Copilot added stock",
             });
-            return `Added ${args.quantity} to ${product.name}. New stock is ${product.stock + args.quantity}.`;
-          } catch (error) {
+            return `Added ${args.quantity} to ${product.name}. New stock is ${updated.stock}.`;
+          } catch {
             return 'Failed to add stock';
           }
         }

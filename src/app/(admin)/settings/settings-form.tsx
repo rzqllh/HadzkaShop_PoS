@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { api } from "@/trpc/react";
 import { toast } from "@/lib/toast";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ const formSchema = z.object({
   receiptHeader: z.string().optional(),
   receiptFooter: z.string().optional(),
 });
+
+const subscribeToHydration = () => () => undefined;
 
 export function SettingsForm() {
   const { data: settings, isLoading } = api.shop.getSettings.useQuery();
@@ -82,11 +84,11 @@ export function SettingsForm() {
   }
 
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
 
   if (isLoading) {
     return (

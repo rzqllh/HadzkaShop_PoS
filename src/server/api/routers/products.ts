@@ -1,6 +1,26 @@
 import { z } from "zod";
 import { createTRPCRouter, ownerProcedure, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import {
+  adjustInventory,
+  adjustInventoryInTransaction,
+} from "@/server/inventory/service";
+import { isProductImageUrlForShop } from "@/server/storage/product-images";
+
+function validateImageUrl(imageUrl: string | null | undefined, shopId: string) {
+  if (!imageUrl) return null;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (
+    !supabaseUrl ||
+    !isProductImageUrlForShop(imageUrl, { supabaseUrl, shopId })
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "URL gambar produk tidak valid untuk toko ini",
+    });
+  }
+  return imageUrl;
+}
 
 export const productsRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -17,10 +37,26 @@ export const productsRouter = createTRPCRouter({
       sku: z.string().min(1),
       price: z.number().min(0),
       categoryId: z.string().optional().nullable(),
+      imageUrl: z.string().url().optional().nullable(),
       initialStock: z.number().int().min(0).default(0),
       lowStockThreshold: z.number().int().min(0).default(10),
     }))
     .mutation(async ({ ctx, input }) => {
+      if (input.categoryId) {
+        const category = await ctx.db.category.findFirst({
+          where: {
+            id: input.categoryId,
+            shopId: ctx.session.user.shopId,
+          },
+          select: { id: true },
+        });
+        if (!category) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Kategori tidak ditemukan untuk toko ini",
+          });
+        }
+      }
       // Check for duplicate SKU
       const existing = await ctx.db.product.findUnique({
         where: { shopId_sku: { shopId: ctx.session.user.shopId, sku: input.sku } }
@@ -36,29 +72,26 @@ export const productsRouter = createTRPCRouter({
             name: input.name,
             sku: input.sku,
             price: input.price,
-            stock: input.initialStock,
+            stock: 0,
             categoryId: input.categoryId,
+            imageUrl: validateImageUrl(input.imageUrl, ctx.session.user.shopId),
             lowStockThreshold: input.lowStockThreshold,
             shopId: ctx.session.user.shopId,
           }
         });
 
         if (input.initialStock > 0) {
-          await tx.stockMovement.create({
-            data: {
-              shopId: ctx.session.user.shopId,
-              productId: product.id,
-              userId: ctx.session.user.id,
-              type: "ADD",
-              quantity: input.initialStock,
-              reason: "Stok awal",
-              previousStock: 0,
-              newStock: input.initialStock,
-            }
+          await adjustInventoryInTransaction(tx, {
+            shopId: ctx.session.user.shopId,
+            productId: product.id,
+            userId: ctx.session.user.id,
+            mode: "ADD",
+            quantity: input.initialStock,
+            reason: "Stok awal",
           });
         }
 
-        return product;
+        return tx.product.findUniqueOrThrow({ where: { id: product.id } });
       });
     }),
 
@@ -69,9 +102,25 @@ export const productsRouter = createTRPCRouter({
       sku: z.string().min(1),
       price: z.number().min(0),
       categoryId: z.string().optional().nullable(),
+      imageUrl: z.string().url().optional().nullable(),
       lowStockThreshold: z.number().int().min(0).default(10),
     }))
     .mutation(async ({ ctx, input }) => {
+      if (input.categoryId) {
+        const category = await ctx.db.category.findFirst({
+          where: {
+            id: input.categoryId,
+            shopId: ctx.session.user.shopId,
+          },
+          select: { id: true },
+        });
+        if (!category) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Kategori tidak ditemukan untuk toko ini",
+          });
+        }
+      }
       // Check for duplicate SKU if changed
       const existing = await ctx.db.product.findUnique({
         where: { shopId_sku: { shopId: ctx.session.user.shopId, sku: input.sku } }
@@ -87,6 +136,7 @@ export const productsRouter = createTRPCRouter({
           sku: input.sku,
           price: input.price,
           categoryId: input.categoryId,
+          imageUrl: validateImageUrl(input.imageUrl, ctx.session.user.shopId),
           lowStockThreshold: input.lowStockThreshold,
         },
       });
@@ -118,49 +168,22 @@ export const productsRouter = createTRPCRouter({
       reason: z.string().min(1),
     }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.$transaction(async (tx) => {
-        const product = await tx.product.findUnique({
-          where: { id: input.id, shopId: ctx.session.user.shopId }
+      try {
+        return await adjustInventory(ctx.db, {
+          shopId: ctx.session.user.shopId,
+          productId: input.id,
+          userId: ctx.session.user.id,
+          mode: input.type,
+          quantity: input.quantity,
+          reason: input.reason,
         });
-        if (!product) throw new TRPCError({ code: "NOT_FOUND" });
-
-        let newStock = product.stock;
-        let actualQuantity = input.quantity;
-        let type: "ADD" | "SUBTRACT" = "ADD";
-
-        if (input.type === "ADD") {
-          newStock += input.quantity;
-          type = "ADD";
-        } else if (input.type === "SUBTRACT") {
-          newStock = Math.max(0, newStock - input.quantity);
-          type = "SUBTRACT";
-        } else if (input.type === "SET") {
-          actualQuantity = Math.abs(input.quantity - product.stock);
-          type = input.quantity > product.stock ? "ADD" : "SUBTRACT";
-          newStock = input.quantity;
-        }
-
-        if (newStock === product.stock) return product;
-
-        await tx.product.update({
-          where: { id: product.id },
-          data: { stock: newStock }
+      } catch (error) {
+        throw new TRPCError({
+          code: error instanceof Error && error.message.includes("ditemukan")
+            ? "NOT_FOUND"
+            : "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Gagal mengubah stok",
         });
-
-        await tx.stockMovement.create({
-          data: {
-            shopId: ctx.session.user.shopId,
-            productId: product.id,
-            userId: ctx.session.user.id,
-            type,
-            quantity: actualQuantity,
-            reason: input.reason,
-            previousStock: product.stock,
-            newStock,
-          }
-        });
-
-        return product;
-      });
+      }
     }),
 });

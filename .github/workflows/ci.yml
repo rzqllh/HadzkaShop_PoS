@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d pos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pos_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pos_test
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-publishable-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      APP_URL: https://pos.example.test
+      QRIS_ENABLED: "false"
+      MIDTRANS_ENV: sandbox
+      MIDTRANS_SERVER_KEY: ci-server-key
+      NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: ci-client-key
+      MIDTRANS_QRIS_ACTIVATED: "false"
+      MIDTRANS_CALLBACKS_CONFIRMED: "false"
+      GOOGLE_GENERATIVE_AI_API_KEY: ci-google-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma validate
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm test
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm audit --prod

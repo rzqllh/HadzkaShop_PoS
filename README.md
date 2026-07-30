@@ -18,13 +18,13 @@ A modern Point of Sale (PoS) application built for HadzkaShop. Designed with a s
 - **PoS Terminal**: Fast checkout interface with cart management.
 - **Inventory Management**: Track products, categories, and stock movements.
 - **AI Copilot**: An integrated AI assistant capable of retrieving live inventory data, logging stock movements, and analyzing today's sales.
-- **Role-based Auth**: Secure access using NextAuth.
+- **Role-based Auth**: Supabase Auth identity mapped to server-side Prisma users.
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- pnpm
+- Node.js 22
+- pnpm 10.20.0
 - A Supabase PostgreSQL database
 - Gemini API Key
 
@@ -42,19 +42,23 @@ A modern Point of Sale (PoS) application built for HadzkaShop. Designed with a s
 
 3. Update the `.env` file with your database credentials and API keys.
 
-4. Push the database schema:
+4. Apply the committed migrations:
    ```bash
-   pnpm dlx prisma db push
+   pnpm exec prisma migrate deploy
    ```
 
-5. Generate the Prisma Client:
+5. Bootstrap the closed single-shop owner account:
    ```bash
-   pnpm dlx prisma generate
+   pnpm bootstrap:owner
    ```
 
 6. Start the development server:
    ```bash
-   pnpm run dev --turbo
+   pnpm dev
    ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+QRIS is disabled by default. Follow
+[`operations/production-security-rollout.md`](operations/production-security-rollout.md)
+before enabling it.

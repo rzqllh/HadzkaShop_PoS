@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminNav } from "./admin-nav";
-import { createClient } from "@/lib/server";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { PageTransition } from "@/components/page-transition";
 import { AICopilot } from "@/components/pos/ai-copilot";
 
@@ -10,13 +9,9 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user || !user.email) redirect("/login");
-
-  const appUser = await prisma.user.findUnique({ where: { email: user.email } });
-  if (!appUser || appUser.role !== "OWNER") redirect("/pos");
+  const session = await auth();
+  if (!session) redirect("/login");
+  if (session.user.role !== "OWNER") redirect("/pos");
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">

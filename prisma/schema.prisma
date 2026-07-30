@@ -13,8 +13,10 @@ enum Role {
 }
 
 enum TransactionStatus {
+  CREATING_PAYMENT
   PENDING
   COMPLETED
+  FAILED
   CANCELLED
   EXPIRED
 }
@@ -36,8 +38,6 @@ enum StockMovementType {
   REFUND // Returned items
 }
 
-
-
 model Shop {
   id                String   @id @default(uuid())
   name              String
@@ -45,6 +45,7 @@ model Shop {
   phone             String?
   taxRate           Decimal  @default(0) @db.Decimal(5, 2)
   currency          String   @default("IDR")
+  timeZone          String   @default("Asia/Jakarta")
   lowStockThreshold Int      @default(10)
   receiptHeader     String?  @db.Text
   receiptFooter     String?  @db.Text
@@ -57,6 +58,7 @@ model Shop {
   customers      Customer[]
   transactions   Transaction[]
   stockMovements StockMovement[]
+  counters       TransactionCounter[]
 }
 
 model User {
@@ -64,6 +66,7 @@ model User {
   shopId       String
   name         String
   email        String   @unique
+  authUserId   String?  @unique @db.Uuid
   passwordHash String?
   role         Role
   isActive     Boolean  @default(true)
@@ -101,6 +104,7 @@ model Product {
   price             Decimal  @db.Decimal(12, 2)
   costPrice         Decimal? @db.Decimal(12, 2)
   stock             Int      @default(0)
+  reservedStock     Int      @default(0)
   lowStockThreshold Int?
   imageUrl          String?
   isActive          Boolean  @default(true)
@@ -113,22 +117,23 @@ model Product {
   stockMovements   StockMovement[]
 
   @@unique([shopId, sku])
+  @@index([shopId, isActive])
 }
 
 model Customer {
-  id            String        @id @default(uuid())
+  id            String   @id @default(uuid())
   shopId        String
   name          String
   phone         String?
   email         String?
-  address       String?       @db.Text
-  loyaltyPoints Int           @default(0)
-  totalSpent    Decimal       @default(0) @db.Decimal(12, 2)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  address       String?  @db.Text
+  loyaltyPoints Int      @default(0)
+  totalSpent    Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  transactions  Transaction[]
+  shop         Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
   @@index([shopId])
   @@index([shopId, name])
@@ -139,11 +144,15 @@ model Transaction {
   shopId                String
   cashierId             String
   customerId            String?
-  transactionNumber     String            @unique
+  transactionNumber     String
+  businessDate          DateTime          @default(now()) @db.Date
+  clientRequestId       String?           @db.Uuid
   status                TransactionStatus @default(PENDING)
   paymentMethod         PaymentMethod
   subtotal              Decimal           @db.Decimal(12, 2)
   discountAmount        Decimal           @default(0) @db.Decimal(12, 2)
+  discountType          DiscountType?
+  discountValue         Decimal?          @db.Decimal(12, 2)
   taxRate               Decimal           @default(0) @db.Decimal(5, 2)
   taxAmount             Decimal           @default(0) @db.Decimal(12, 2)
   shippingCost          Decimal           @default(0) @db.Decimal(12, 2)
@@ -151,9 +160,11 @@ model Transaction {
   amountPaid            Decimal           @db.Decimal(12, 2)
   changeDue             Decimal           @default(0) @db.Decimal(12, 2)
   note                  String?           @db.Text
-  midtransOrderId       String?
-  midtransTransactionId String?
+  midtransOrderId       String?           @unique
+  midtransTransactionId String?           @unique
+  midtransSnapToken     String?
   midtransStatus        String?
+  paymentExpiresAt      DateTime?
   completedAt           DateTime?
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
@@ -164,8 +175,13 @@ model Transaction {
   items          TransactionItem[]
   stockMovements StockMovement[]
 
-  @@index([shopId])
+  @@unique([shopId, transactionNumber])
+  @@unique([shopId, clientRequestId])
   @@index([shopId, createdAt])
+  @@index([shopId, businessDate])
+  @@index([shopId, status, createdAt])
+  @@index([cashierId])
+  @@index([customerId])
 }
 
 model TransactionItem {
@@ -183,6 +199,7 @@ model TransactionItem {
   product     Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([transactionId])
+  @@index([productId])
 }
 
 model StockMovement {
@@ -203,7 +220,19 @@ model StockMovement {
   user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   transaction Transaction? @relation(fields: [referenceId], references: [id], onDelete: SetNull)
 
+  @@unique([referenceId, productId, type])
   @@index([shopId])
   @@index([productId])
+  @@index([userId])
+  @@index([referenceId])
 }
 
+model TransactionCounter {
+  shopId       String
+  businessDate DateTime @db.Date
+  lastValue    Int      @default(0)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([shopId, businessDate])
+}

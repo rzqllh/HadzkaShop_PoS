@@ -20,7 +20,7 @@ export default async function UsersPage() {
             </p>
           </div>
         </div>
-        <UsersClient />
+        <UsersClient currentUserId={session.user.id} />
       </div>
     </HydrateClient>
   );

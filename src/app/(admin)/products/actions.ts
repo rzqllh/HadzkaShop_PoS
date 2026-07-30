@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { adjustInventoryInTransaction } from "@/server/inventory/service";
+import { isProductImageUrlForShop } from "@/server/storage/product-images";
 
 const ProductSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -23,18 +25,31 @@ export type ProductFormState = {
   success?: boolean;
 };
 
-async function getOwnerShopId(): Promise<string | null> {
+async function getOwnerActor(): Promise<{ shopId: string; userId: string } | null> {
   const session = await auth();
   if (session?.user?.role !== "OWNER") return null;
-  return session.user.shopId;
+  return { shopId: session.user.shopId, userId: session.user.id };
+}
+
+function validatedImageUrl(value: string | undefined, shopId: string) {
+  if (!value) return null;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (
+    !supabaseUrl ||
+    !isProductImageUrlForShop(value, { supabaseUrl, shopId })
+  ) {
+    throw new Error("URL gambar produk tidak valid untuk toko ini");
+  }
+  return value;
 }
 
 export async function createProduct(
   prevState: ProductFormState,
   formData: FormData
 ): Promise<ProductFormState> {
-  const shopId = await getOwnerShopId();
-  if (!shopId) return { message: "Unauthorized", success: false };
+  const actor = await getOwnerActor();
+  if (!actor) return { message: "Unauthorized", success: false };
+  const { shopId, userId } = actor;
 
   const raw = {
     name: formData.get("name"),
@@ -60,17 +75,38 @@ export async function createProduct(
   if (existing) {
     return { errors: { sku: ["SKU already exists in this shop."] }, success: false };
   }
+  if (
+    result.data.categoryId &&
+    !(await prisma.category.findFirst({
+      where: { id: result.data.categoryId, shopId },
+      select: { id: true },
+    }))
+  ) {
+    return { errors: { categoryId: ["Category not found in this shop."] }, success: false };
+  }
 
-  await prisma.product.create({
-    data: {
+  await prisma.$transaction(async (tx) => {
+    const { stock, ...productData } = result.data;
+    const product = await tx.product.create({
+      data: {
+        shopId,
+        ...productData,
+        stock: 0,
+        categoryId: result.data.categoryId || null,
+        imageUrl: validatedImageUrl(result.data.imageUrl, shopId),
+        costPrice: result.data.costPrice ?? null,
+        lowStockThreshold: result.data.lowStockThreshold ?? null,
+        barcode: result.data.barcode || null,
+      },
+    });
+    await adjustInventoryInTransaction(tx, {
       shopId,
-      ...result.data,
-      categoryId: result.data.categoryId || null,
-      imageUrl: result.data.imageUrl || null,
-      costPrice: result.data.costPrice ?? null,
-      lowStockThreshold: result.data.lowStockThreshold ?? null,
-      barcode: result.data.barcode || null,
-    },
+      productId: product.id,
+      userId,
+      mode: "ADD",
+      quantity: stock,
+      reason: "Stok awal",
+    });
   });
 
   revalidatePath("/products");
@@ -82,8 +118,9 @@ export async function updateProduct(
   prevState: ProductFormState,
   formData: FormData
 ): Promise<ProductFormState> {
-  const shopId = await getOwnerShopId();
-  if (!shopId) return { message: "Unauthorized", success: false };
+  const actor = await getOwnerActor();
+  if (!actor) return { message: "Unauthorized", success: false };
+  const { shopId, userId } = actor;
 
   const raw = {
     name: formData.get("name"),
@@ -113,17 +150,37 @@ export async function updateProduct(
   if (existing) {
     return { errors: { sku: ["SKU already used by another product."] }, success: false };
   }
+  if (
+    result.data.categoryId &&
+    !(await prisma.category.findFirst({
+      where: { id: result.data.categoryId, shopId },
+      select: { id: true },
+    }))
+  ) {
+    return { errors: { categoryId: ["Category not found in this shop."] }, success: false };
+  }
 
-  await prisma.product.update({
-    where: { id, shopId },
-    data: {
-      ...result.data,
-      categoryId: result.data.categoryId || null,
-      imageUrl: result.data.imageUrl || null,
-      costPrice: result.data.costPrice ?? null,
-      lowStockThreshold: result.data.lowStockThreshold ?? null,
-      barcode: result.data.barcode || null,
-    },
+  await prisma.$transaction(async (tx) => {
+    const { stock, ...productData } = result.data;
+    await tx.product.update({
+      where: { id, shopId },
+      data: {
+        ...productData,
+        categoryId: result.data.categoryId || null,
+        imageUrl: validatedImageUrl(result.data.imageUrl, shopId),
+        costPrice: result.data.costPrice ?? null,
+        lowStockThreshold: result.data.lowStockThreshold ?? null,
+        barcode: result.data.barcode || null,
+      },
+    });
+    await adjustInventoryInTransaction(tx, {
+      shopId,
+      productId: id,
+      userId,
+      mode: "SET",
+      quantity: stock,
+      reason: "Stok diubah dari form produk",
+    });
   });
 
   revalidatePath("/products");
@@ -131,8 +188,9 @@ export async function updateProduct(
 }
 
 export async function archiveProduct(id: string): Promise<{ success: boolean; message: string }> {
-  const shopId = await getOwnerShopId();
-  if (!shopId) return { success: false, message: "Unauthorized" };
+  const actor = await getOwnerActor();
+  if (!actor) return { success: false, message: "Unauthorized" };
+  const { shopId } = actor;
 
   await prisma.product.update({
     where: { id, shopId },
@@ -144,8 +202,9 @@ export async function archiveProduct(id: string): Promise<{ success: boolean; me
 }
 
 export async function restoreProduct(id: string): Promise<{ success: boolean; message: string }> {
-  const shopId = await getOwnerShopId();
-  if (!shopId) return { success: false, message: "Unauthorized" };
+  const actor = await getOwnerActor();
+  if (!actor) return { success: false, message: "Unauthorized" };
+  const { shopId } = actor;
 
   await prisma.product.update({
     where: { id, shopId },
